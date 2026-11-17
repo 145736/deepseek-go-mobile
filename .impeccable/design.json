@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-17T13:44:39.570410+00:00",
+  "title": "DeepSeek 随行",
+  "extensions": {
+    "motion": [
+      {
+        "name": "control",
+        "value": "160ms ease",
+        "purpose": "Control state transitions; reduced motion supported"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "768px"
+      }
+    ]
+  },
+  "components": [],
+  "narrative": {
+    "northStar": "专注于聊天的手机工具",
+    "overview": "LobeChat-inspired neutral surfaces with DeepSeek blue actions.",
+    "rules": [
+      {
+        "name": "Mobile readability",
+        "body": "Native Chinese fonts and 44px touch controls.",
+        "section": "typography"
+      }
+    ]
+  }
+}
