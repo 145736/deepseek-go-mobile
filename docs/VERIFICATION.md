@@ -17,3 +17,13 @@
 No real user API key was supplied. No paid inference, real server file parsing/OCR, real microphone transcription, or real speech playback was claimed successful. ASR/TTS paths and transport are tested with mocks and retained official code. iPhone Safari hardware keyboard, microphone permission and standalone install need real-device acceptance. A resized Chromium viewport is not an iPhone/WebKit test.
 
 The manifest and Apple icons support Add to Home Screen; no service worker or offline inference is claimed. Static hosting and local record persistence do not eliminate DeepSeek usage charges or browser storage eviction.
+
+
+## GitHub Pages — 2026-11-17
+
+- Published public source: https://github.com/145736/deepseek-go-mobile (`main`). Static output: `gh-pages`, root; HTTPS enforced.
+- Live URL: https://145736.github.io/deepseek-go-mobile/ . GitHub Pages build completed successfully. Unauthenticated HTTP GET returned 200 with HTML identical to local dist/index.html.
+- Actual Chrome navigation loaded the production application without any ChatGPT or GitHub login; homepage and settings inspected at 390x844. This remains a desktop responsive check, not an iPhone hardware test.
+- Credentials were not included in source or static output; existing Git credential manager was used in process memory for deployment. The source snapshot excludes the former hosting project identifier.
+- New origin has independent browser storage; users enter their own Key again and can import an exported chat backup. No real user API calls were made.
+- Production entry JS, CSS and icons match local build byte-for-byte. Manifest returned HTTP success and the published Git blob has identical JSON (line endings normalized); a followup manifest download timed out. DeepSeek OPTIONS returned 200 and allowed Origin `https://145736.github.io` plus content-type/x-api-key/anthropic-beta. This confirms preflight only, not authenticated inference.
