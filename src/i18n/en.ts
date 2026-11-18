@@ -1,6 +1,23 @@
 import type { zh } from './zh.js'
 
 export const en = {
+  extensions: 'Extensions',
+  mySkills: 'My skills',
+  officialTools: 'Official tools',
+  replyDetails: 'Reply details',
+  replySkill: 'Skill used',
+  selectSkill: 'Use in this chat',
+  unselectSkill: 'Turn off for this chat',
+  saveSkill: 'Save to my skills',
+  importSkill: 'Import SKILL.md',
+  skillSupport: 'Supports standalone text skills. When selected, their instructions are sent to DeepSeek with this chat.',
+  officialNote: 'Web search, URL reading and file inputs use DeepSeek Flash and run on DeepSeek.',
+  skillFormat: 'Choose a Markdown file up to 64 KB with name and description in the header followed by instructions.',
+  skillDependencies: 'This skill declares an environment, tools or bundled files. Choose a standalone text skill.',
+  skillDuplicate: 'A skill with this name already exists.',
+  skillStorageError: 'Could not save changes. Check your browser storage.',
+  searchOn: 'Web search is on',
+  searchOff: 'Web search is off',
   modelControls: 'Attachments and model',
   reasoningGesture: 'Tap to toggle. Hold or press Arrow Up to adjust reasoning effort.',
   modelChoice: 'Model',

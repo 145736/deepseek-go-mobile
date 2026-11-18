@@ -1,3 +1,5 @@
+import { findSessionBodies } from '../../services/chat/db.js'
+import { openExtensions } from '../../services/skills.js'
 import clsx from 'clsx'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
@@ -22,18 +24,39 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
   const activeId = useChatStore((state) => state.activeId)
   const [now, setNow] = useState(Date.now)
   const [query, setQuery] = useState('')
+  const needle = query.trim().toLocaleLowerCase()
+  const [bodyMatches, setBodyMatches] = useState<{ needle: string; ids: Set<string> } | null>(null)
+  useEffect(() => {
+    if (!needle) {
+      return
+    }
+    const controller = new AbortController()
+    const timer = setTimeout(() => {
+      void findSessionBodies(needle, controller.signal)
+        .then((ids) => {
+          if (!controller.signal.aborted) {
+            setBodyMatches({ needle, ids })
+          }
+        })
+        .catch(() => {})
+    }, 160)
+    return () => {
+      clearTimeout(timer)
+      controller.abort()
+    }
+  }, [needle, sessions])
   const groups = useMemo(
     () =>
       groupSessions(
-        sessions.filter((session) =>
-          (session.title || t('untitledChat'))
-            .toLocaleLowerCase()
-            .includes(query.trim().toLocaleLowerCase())
+        sessions.filter(
+          (session) =>
+            (session.title || t('untitledChat')).toLocaleLowerCase().includes(needle) ||
+            (bodyMatches?.needle === needle && bodyMatches.ids.has(session.id))
         ),
         now,
         t
       ),
-    [sessions, now, t, query]
+    [sessions, now, t, needle, bodyMatches]
   )
   const [deleting, setDeleting] = useState<SessionSummary | null>(null)
   const [deletePending, setDeletePending] = useState(false)
@@ -121,6 +144,16 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         </div>
       </div>
       <div className={styles.bottom}>
+        <button
+          className={styles.settings}
+          type="button"
+          onClick={() => {
+            closeMobileSider()
+            openExtensions()
+          }}
+        >
+          {t('extensions')}
+        </button>
         <button
           type="button"
           className={styles.settings}

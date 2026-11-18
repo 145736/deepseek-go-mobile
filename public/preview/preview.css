@@ -362,7 +362,7 @@ blockquote footer {
   align-items: center;
   margin-left: auto;
 }
-#composer:not(.expanded) :is(#search, #sendBtn, .skill-pill) {
+#composer:not(.expanded) :is(#sendBtn, .skill-pill) {
   display: none;
 }
 #composer.expanded {
@@ -697,4 +697,37 @@ dialog::backdrop {
   :root[data-style='b'] .citation::details-content {
     transition: none;
   }
+}
+
+/* The touch target stays fixed as the selection mark appears. */
+#search {
+  position: relative;
+  isolation: isolate;
+}
+#search[aria-pressed='true'] {
+  --icon-lift: 0px;
+  color: var(--panel);
+}
+#search[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+#search[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  box-sizing: content-box;
+  inset: auto 6px 6px auto;
+  width: 7px;
+  height: 4px;
+  border: solid var(--accent);
+  border-width: 0 0 2px 2px;
+  border-radius: 0;
+  background: var(--panel);
+  box-shadow: 0 0 0 2px var(--panel);
+  transform: rotate(-45deg);
+  pointer-events: none;
 }

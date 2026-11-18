@@ -138,6 +138,27 @@ export const AssistantMessage = memo(function AssistantMessage({
           </span>
         </div>
       ) : null}
+      {message.model && !streaming && (
+        <details className="reply-skill">
+          <summary>{t('replyDetails')}</summary>
+          <p>
+            {message.model === 'deepseek-flash' ? 'Flash' : 'Pro'}
+            {message.effort && message.thinking
+              ? ' · ' + t('effortChoice') + ' ' + message.effort
+              : ''}
+            {message.search !== undefined
+              ? ' · ' + t(message.search ? 'searchOn' : 'searchOff')
+              : ''}
+          </p>
+          {message.skill && (
+            <p>
+              {t('replySkill')} · {message.skill.name}
+              {'\n'}
+              {message.skill.body}
+            </p>
+          )}
+        </details>
+      )}
       {streaming ? null : (
         <div className={styles.bottom}>
           <BranchSwitcher versions={versions} disabled={busy} onSelect={onSelectVersion} />

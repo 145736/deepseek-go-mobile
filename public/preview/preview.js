@@ -19,7 +19,7 @@ threads.set('new', makeThread())
 let threadId = 'example'
 const conversation = () => threads.get(threadId)
 let model = 'Flash'
-let search = false
+let search = true
 let thinking = false
 let effort = 1
 const levels = ['低', '高', '最高']
@@ -530,7 +530,7 @@ function readSkill(text) {
     throw Error('这个技能引用了附带文件；样稿支持可独立使用的单文件文字技能。')
   return { ...fields, body }
 }
-setStyle(new URL(location.href).searchParams.get('style') === 'b' ? 'b' : 'a')
+setStyle(new URL(location.href).searchParams.get('style') === 'a' ? 'a' : 'b')
 
 // A downward swipe on the sheet heading dismisses it, leaving lists free to scroll.
 const sheetHead = sheet.querySelector('.sheet-head')

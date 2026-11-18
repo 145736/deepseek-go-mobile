@@ -23,9 +23,41 @@ type Draft = { text: string; attachments: DraftAttachment[] }
 
 export const EMPTY_DRAFT: Draft = { text: '', attachments: [] }
 
-/** 草稿只保存在本次页面的内存中，独立于会话详情缓存；null 是新对话的草稿。 */
+// Persist text per conversation. Attachment blobs and upload tasks stay in memory.
+const textKey = 'chat-demo:draft-text:'
+function restoreText() {
+  const drafts = new Map<string | null, Draft>()
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key?.startsWith(textKey)) {
+        continue
+      }
+      const id = key.slice(textKey.length)
+      const text = localStorage.getItem(key)
+      if (text) {
+        drafts.set(id || null, { text, attachments: [] })
+      }
+    }
+  } catch {
+    /* Storage may be unavailable in private browsing. */
+  }
+  return drafts
+}
+function saveText(sessionId: string | null, text: string) {
+  const key = textKey + (sessionId ?? '')
+  try {
+    if (text) {
+      localStorage.setItem(key, text)
+    } else {
+      localStorage.removeItem(key)
+    }
+  } catch {
+    /* Keep editing in memory when storage is full. */
+  }
+}
 export const useDrafts = create<{ drafts: Map<string | null, Draft> }>(() => ({
-  drafts: new Map(),
+  drafts: restoreText(),
 }))
 
 export const getDraft = (sessionId: string | null): Draft =>
@@ -34,6 +66,9 @@ export const getDraft = (sessionId: string | null): Draft =>
 const updateDraft = (sessionId: string | null, update: (draft: Draft) => Draft) =>
   useDrafts.setState((state) => {
     const draft = update(state.drafts.get(sessionId) ?? EMPTY_DRAFT)
+    if (draft.text !== state.drafts.get(sessionId)?.text) {
+      saveText(sessionId, draft.text)
+    }
     const drafts = new Map(state.drafts)
     if (draft.text || draft.attachments.length > 0) {
       drafts.set(sessionId, draft)
@@ -154,7 +189,8 @@ export const clearDraft = (sessionId: string | null) => {
 }
 
 export const clearAllDrafts = () => {
-  for (const draft of useDrafts.getState().drafts.values()) {
+  for (const [id, draft] of useDrafts.getState().drafts) {
+    saveText(id, '')
     draft.attachments.forEach((attachment) => releaseAttachment(attachment, true))
   }
   useDrafts.setState({ drafts: new Map() })

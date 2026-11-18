@@ -331,7 +331,7 @@
 .wrapper {
   border-radius: 22px;
   border-color: color-mix(in srgb, var(--dsw-alias-label-primary) 12%, transparent);
-  background: color-mix(in srgb, var(--dsw-alias-bg-base) 97%, #b7a582);
+  background: var(--dsw-specific-input-major);
 }
 .home,
 .session {
@@ -490,12 +490,12 @@
    composition and caret while moving between the two layouts. */
 .wrapper[data-compact='true'] {
   display: grid;
-  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  grid-template-columns: 44px minmax(0, 1fr) auto 44px;
   align-items: center;
-  width: calc(100% - 20px);
+  width: min(100%, 560px);
   margin-inline: auto;
   padding: 1px 4px;
-  border-radius: 28px;
+  border-radius: 16px;
 }
 .wrapper[data-compact='true'] .functionRow,
 .wrapper[data-compact='true'] .right { display: contents; }
@@ -503,14 +503,20 @@
   grid-column: 1; grid-row: 1;
 }
 .wrapper[data-compact='true'] .textareaWrapper { grid-column: 2; grid-row: 1; min-width: 0; }
-.wrapper[data-compact='true'] .right button { grid-column: 3; grid-row: 1; }
-.wrapper[data-compact='true'] .toggles,
+.wrapper[data-compact='true'] .right button { grid-column: 4; grid-row: 1; }
+.wrapper[data-compact='true'] .toggles {
+  grid-column: 3;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+}
 .wrapper[data-compact='true'] .sendButton { display: none; }
 .wrapper[data-compact='true'] .textarea,
 .wrapper[data-compact='true'] .mirror {
   height: 44px;
   min-height: 44px;
-  padding: 10px 6px;
+  padding: 10px 2px;
+  overflow: hidden;
 }
 
 
@@ -518,4 +524,37 @@
   .toggle {
     min-width: 44px;
   }
+}
+
+/* The touch target stays fixed as the selection mark appears. */
+.toggles [data-search-toggle] {
+  position: relative;
+  isolation: isolate;
+}
+.toggles [data-search-toggle][aria-pressed='true'] {
+  --icon-lift: 0px;
+  color: var(--dsw-specific-input-major);
+}
+.toggles [data-search-toggle][aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 6px;
+  border-radius: 50%;
+  background: var(--dsw-alias-brand-text);
+}
+.toggles [data-search-toggle][aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  box-sizing: content-box;
+  inset: auto 6px 6px auto;
+  width: 7px;
+  height: 4px;
+  border: solid var(--dsw-alias-brand-text);
+  border-width: 0 0 2px 2px;
+  border-radius: 0;
+  background: var(--dsw-specific-input-major);
+  box-shadow: 0 0 0 2px var(--dsw-specific-input-major);
+  transform: rotate(-45deg);
+  pointer-events: none;
 }

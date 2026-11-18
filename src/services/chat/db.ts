@@ -78,6 +78,28 @@ const getDB = () =>
 export const loadSessionSummaries = async (): Promise<SessionSummary[]> =>
   (await (await getDB()).getAll('sessionSummaries')).map(toSessionSummary)
 
+export async function findSessionBodies(query: string, signal: AbortSignal) {
+  const ids = new Set<string>()
+  const db = await getDB()
+  let cursor = await db.transaction('sessions').store.openCursor()
+  while (cursor && !signal.aborted) {
+    const session = cursor.value
+    if (
+      session.messages.some((message) =>
+        message.role === 'user'
+          ? message.content.toLocaleLowerCase().includes(query)
+          : message.blocks.some(
+              (block) => block.type === 'text' && block.text.toLocaleLowerCase().includes(query)
+            )
+      )
+    ) {
+      ids.add(session.id)
+    }
+    cursor = await cursor.continue()
+  }
+  return ids
+}
+
 export const loadSession = async (id: string): Promise<Session | undefined> =>
   (await getDB()).get('sessions', id)
 

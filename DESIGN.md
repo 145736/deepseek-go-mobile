@@ -3,12 +3,12 @@ name: DeepSeek 随行
 description: LobeChat-inspired mobile chat, grounded in the DeepSeek official demo
 colors:
   primary: "#3367e8"
-  accent-text: "#2859ce"
-  text: "#202127"
-  secondary: "#63656e"
-  background: "#ffffff"
-  sidebar: "#f8f8fa"
-  border: "#e6e6eb"
+  accent-text: "#765936"
+  text: "#302e29"
+  secondary: "#686359"
+  background: "#f7f4ec"
+  sidebar: "#fdfaf3"
+  border: "#d9d2c5"
 typography:
   heading:
     fontFamily: "-apple-system, BlinkMacSystemFont, Segoe UI, PingFang SC, Microsoft YaHei, sans-serif"
@@ -17,6 +17,7 @@ typography:
     lineHeight: 1.4
     letterSpacing: "-0.03em"
   body:
+    fontFamily: "Songti SC, STSong, Noto Serif CJK SC, SimSun, Georgia, serif"
     fontSize: "16px"
     lineHeight: "28px"
   caption:
@@ -58,11 +59,11 @@ Operate mode. The user explicitly pins LobeChat as the interface reference. Reta
 
 ## Colors
 
-Use the upstream semantic token names in `src/app/theme.css`. Main chrome is near-white or charcoal according to system preference. Blue communicates selection and action. Dark colors are in `body[data-ds-dark-theme]`.
+Use the upstream semantic token names in `src/app/theme.css`. The selected B direction uses warm paper and ink, with a darker paper surface in dark mode. A filled globe and a check identify active search. Dark colors are in `body[data-ds-dark-theme]`.
 
 ## Typography
 
-Preserve native iPhone typography and explicitly provide PingFang SC / Microsoft YaHei for readable Chinese. This is the narrow system-font exception justified by the existing upstream `--dsw-font-family` and the user's mobile app reference. Input remains 16px to avoid Safari focus zoom. No external font requests.
+Use Songti SC for reading and native iPhone typography for controls and explicitly provide PingFang SC / Microsoft YaHei for readable Chinese. This is the narrow system-font exception justified by the existing upstream `--dsw-font-family` and the user's mobile app reference. Input remains 16px to avoid Safari focus zoom. No external font requests.
 
 ## Layout
 

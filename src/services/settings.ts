@@ -102,7 +102,7 @@ export const useSettings = create<Settings>(() => ({
   model: read(KEYS.model) === 'deepseek-v4-pro' ? 'deepseek-v4-pro' : 'deepseek-flash',
   effort: savedEffort === 'low' || savedEffort === 'max' ? savedEffort : 'high',
   thinking: read(KEYS.thinking) === 'true',
-  search: read(KEYS.search) === 'true',
+  search: read(KEYS.search) !== 'false',
   siderCollapsed: read(KEYS.siderCollapsed) === 'true',
 }))
 

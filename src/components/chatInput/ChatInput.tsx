@@ -140,8 +140,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
 
-  const compact =
-    isMobile && !editing && !text && !attachments.length && !streaming && voice.status === 'idle'
+  const compact = !editing && !text && !attachments.length && !streaming && voice.status === 'idle'
 
   const send = () => {
     if (
@@ -258,26 +257,25 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             event.target.value = ''
           }}
         />
-        {!compact && (
-          <div className={styles.toggles}>
-            <Tooltip content={t('deactivatedSearchTooltip')}>
-              <button
-                type="button"
-                className={clsx(styles.toggle, search && styles.selected)}
-                aria-label={t('search')}
-                aria-pressed={search}
-                onClick={() => {
-                  if (requireFlash(() => setSearch(true))) {
-                    setSearch(!search)
-                  }
-                }}
-              >
-                <IconGlobeLanguageOutline14 />
-              </button>
-            </Tooltip>
-            <ReasoningControl className={clsx(styles.toggle, thinking && styles.selected)} />
-          </div>
-        )}
+        <div className={styles.toggles}>
+          <Tooltip content={t(search ? 'searchOn' : 'searchOff')}>
+            <button
+              type="button"
+              data-search-toggle=""
+              className={clsx(styles.toggle, search && styles.selected)}
+              aria-label={t('search')}
+              aria-pressed={search}
+              onClick={() => {
+                if (requireFlash(() => setSearch(true))) {
+                  setSearch(!search)
+                }
+              }}
+            >
+              <IconGlobeLanguageOutline14 />
+            </button>
+          </Tooltip>
+          <ReasoningControl className={clsx(styles.toggle, thinking && styles.selected)} />
+        </div>
         <div className={styles.right}>
           <VoiceButton
             status={voice.status}

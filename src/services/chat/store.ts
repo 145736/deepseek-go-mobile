@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useSkills } from '../skills.js'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
 import type { ChatModel } from '../api/types.js'
@@ -50,6 +51,7 @@ const FILE_RETRY_BASE_DELAY = 1000
 const titleRequests = new Set<AbortController>()
 
 type ChatState = {
+  newChatSkillId?: string
   ready: boolean
   initError: boolean
   /** 历史导入或全部删除期间锁定交互，提交成功前仍展示原有记录。 */
@@ -65,7 +67,17 @@ type ChatState = {
   streaming: Record<string, AbortController>
 }
 
+const draftSkillKey = 'chat-demo:draft-skill'
+function restoreDraftSkill() {
+  try {
+    return sessionStorage.getItem(draftSkillKey) ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 export const useChatStore = create<ChatState>(() => ({
+  newChatSkillId: restoreDraftSkill(),
   ready: false,
   initError: false,
   importingHistory: false,
@@ -76,6 +88,19 @@ export const useChatStore = create<ChatState>(() => ({
   activeId: null,
   streaming: {},
 }))
+
+useChatStore.subscribe((next, prev) => {
+  if (next.newChatSkillId === prev.newChatSkillId) {
+    return
+  }
+  try {
+    if (next.newChatSkillId) {
+      sessionStorage.setItem(draftSkillKey, next.newChatSkillId)
+    } else {
+      sessionStorage.removeItem(draftSkillKey)
+    }
+  } catch { /* The current tab can still use its in-memory selection. */ }
+})
 
 const { getState: get, setState: set } = useChatStore
 
@@ -244,7 +269,21 @@ export const bindChatPersistence = () => {
 }
 
 /** 按当前开关创建回复：深度思考对应 thinking，智能搜索控制 deepseek_web_search。 */
-const createReply = (): AssistantMessage => {
+export function setConversationSkill(sessionId: string | null, skillId?: string) {
+  if (get().importingHistory) {
+    return
+  }
+  if (sessionId === null) {
+    set({ newChatSkillId: skillId })
+  } else if (getSession(sessionId)) {
+    updateSession(sessionId, (session) => ({ ...session, skillId }))
+    persist(sessionId)
+  }
+}
+
+const createReply = (sessionId: string): AssistantMessage => {
+  const skillId = getSession(sessionId)?.skillId
+  const skill = useSkills.getState().items.find((item) => item.id === skillId)
   const { model, effort, thinking, search } = useSettings.getState()
   return {
     id: createId(),
@@ -253,6 +292,7 @@ const createReply = (): AssistantMessage => {
     model,
     effort,
     thinking,
+    skill,
     search: model === MODEL && search,
     prefix: true,
     status: 'pending',
@@ -412,6 +452,7 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
       ready: true,
       initError: false,
       sessions: sortSessions(summaries),
+      newChatSkillId: undefined,
       sessionCache: {},
       sessionLoadErrors: {},
       sessionSaveErrors: {},
@@ -582,6 +623,7 @@ export const sendMessage = (targetSessionId: string | null) => {
       createdAt: now,
       updatedAt: now,
       messages: [],
+      skillId: get().newChatSkillId,
       rootMessageId: null,
     }
     sessionId = session.id
@@ -590,6 +632,7 @@ export const sendMessage = (targetSessionId: string | null) => {
       sessions: [toSessionSummary(session), ...state.sessions],
       sessionCache: { ...state.sessionCache, [session.id]: session },
       activeId: session.id,
+      newChatSkillId: undefined,
     }))
   }
   const current = getSession(sessionId)
@@ -611,7 +654,7 @@ export const sendMessage = (targetSessionId: string | null) => {
     })),
     createdAt: now,
   }
-  const reply = createReply()
+  const reply = createReply(sessionId)
   updateSession(sessionId, (session) => ({
     ...appendBranch(session, history.at(-1)?.id ?? null, [question, reply]),
     updatedAt: now,
@@ -648,7 +691,7 @@ export const regenerateReply = (sessionId: string, messageId?: string) => {
   if (!allowNewReply(history, question.content, question.files.length)) {
     return
   }
-  const reply = createReply()
+  const reply = createReply(sessionId)
   updateSession(sessionId, (s) => ({
     ...appendBranch(s, question.id, [reply]),
     updatedAt: Date.now(),
@@ -683,7 +726,7 @@ export const editMessage = (sessionId: string, messageId: string, content: strin
     files: previous.files,
     createdAt: Date.now(),
   }
-  const reply = createReply()
+  const reply = createReply(sessionId)
   updateSession(sessionId, (s) => ({
     ...appendBranch(s, path[index - 1]?.id ?? null, [question, reply]),
     updatedAt: Date.now(),
@@ -1019,7 +1062,9 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
-            system: SYSTEM_PROMPT,
+            system: initial.skill
+              ? [SYSTEM_PROMPT, initial.skill.body].join('\n\n')
+              : SYSTEM_PROMPT,
             messages,
             safety_check: SAFETY_CHECK,
             ...generationOptions(initial, titleRequests.has(controller)),

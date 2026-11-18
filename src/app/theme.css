@@ -251,37 +251,46 @@ body {
   --dsw-font-xs-13: 13px/20px var(--dsw-font-family);
 }
 
-/* LobeChat-inspired neutral surfaces, retaining DeepSeek's blue identity. */
+/* Warm paper surfaces and the reading face shared with the B preview. */
 body {
-  --dsw-alias-brand-primary: #3367e8;
-  --dsw-alias-brand-text: #2859ce;
-  --dsw-alias-label-primary: #202127;
-  --dsw-alias-label-secondary: #63656e;
-  --dsw-alias-label-tertiary: #6c6e78;
-  --dsw-alias-label-caption: #737580;
-  --dsw-alias-border-l1: #f0f0f2;
-  --dsw-alias-border-l2: #e6e6eb;
-  --dsw-alias-border-l2-darkmode-thin: #dedee5;
-  --dsw-specific-sidebar-fill: #f8f8fa;
-  --dsw-specific-bubble: #eef3ff;
+  --paper: #f7f4ec;
+  --sheet: #fdfaf3;
+  --wash: #eee9dd;
+  --edge: #d9d2c5;
+  --ink: #302e29;
+  --soft: #686359;
+  --accent-ink: #765936;
+  --reading-face: 'Songti SC', STSong, 'Noto Serif CJK SC', SimSun, Georgia, serif;
 }
 body[data-ds-dark-theme] {
-  --dsw-alias-brand-primary: #769dff;
-  --dsw-alias-brand-text: #9cb8ff;
-  --dsw-alias-label-primary: #ededf1;
-  --dsw-alias-label-secondary: #aaaab4;
-  --dsw-alias-label-tertiary: #a2a2ae;
-  --dsw-alias-label-caption: #a2a2ae;
-  --dsw-alias-border-l1: #25252b;
-  --dsw-alias-border-l2: #34343d;
-  --dsw-alias-border-l2-darkmode-thin: #41414b;
-  --dsw-specific-sidebar-fill: #1b1b20;
-  --dsw-specific-bubble: #272a35;
-  --dsw-alias-bg-base: #16161a;
-  --dsw-specific-input-major: #202025;
+  --paper: #201f1c;
+  --sheet: #292722;
+  --wash: #332f27;
+  --edge: #494437;
+  --ink: #ebe5d7;
+  --soft: #b9b1a0;
+  --accent-ink: #ddc49b;
 }
-
-body[data-ds-dark-theme] {
-  --dsw-alias-button-primary-fill: #3367e8;
-  --dsw-alias-button-primary-hover: #4f7bf0;
+body, body[data-ds-dark-theme] {
+  --dsw-alias-bg-base: var(--paper);
+  --dsw-alias-bg-layer-2: var(--sheet);
+  --dsw-alias-bg-layer-3: var(--sheet);
+  --dsw-specific-input-major: var(--sheet);
+  --dsw-specific-sidebar-fill: var(--sheet);
+  --dsw-specific-bubble: var(--wash);
+  --dsw-specific-selector: var(--wash);
+  --dsw-alias-brand-text: var(--accent-ink);
+  --dsw-alias-label-primary: var(--ink);
+  --dsw-alias-label-secondary: var(--soft);
+  --dsw-alias-label-tertiary: var(--soft);
+  --dsw-alias-label-caption: var(--soft);
+  --dsw-alias-border-l1: var(--wash);
+  --dsw-alias-border-l2: var(--edge);
+  --dsw-alias-border-l2-darkmode-thin: var(--edge);
+  --dsw-font-markdown-base: 16px/1.85 var(--reading-face);
+  --dsw-font-markdown-base-strong: 600 16px/1.85 var(--reading-face);
+  --dsw-font-markdown-h1: 600 26px/1.45 var(--reading-face);
+  --dsw-font-markdown-h2: 600 22px/1.5 var(--reading-face);
+  --dsw-font-markdown-h3: 600 19px/1.55 var(--reading-face);
+  --dsw-font-markdown-h4: 600 17px/1.6 var(--reading-face);
 }

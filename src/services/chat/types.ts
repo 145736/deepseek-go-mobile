@@ -73,6 +73,7 @@ export type ReplyBlock = ThinkingPart | TextPart | ServerToolBlock
 export type ReplyStatus = 'pending' | 'streaming' | 'done' | 'stopped' | 'error'
 
 export type AssistantMessage = MessageBranch & {
+  skill?: import('../skills.js').TextSkill
   id: string
   role: 'assistant'
   createdAt: number
@@ -108,6 +109,7 @@ export type AssistantMessage = MessageBranch & {
 export type Message = UserMessage | AssistantMessage
 
 export type Session = {
+  skillId?: string
   id: string
   title: string
   createdAt: number

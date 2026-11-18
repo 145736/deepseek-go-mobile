@@ -1,3 +1,4 @@
+import { openExtensions } from '../../services/skills.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
 import { useEffect, useId, useRef, useState } from 'react'
@@ -121,6 +122,15 @@ export function ModelControls({
                 >
                   <IconPaperclipOutline16 />
                   {t('addMedia')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    close(true)
+                    openExtensions()
+                  }}
+                >
+                  {t('extensions')}
                 </button>
                 <button type="button" onClick={() => setPage('models')}>
                   <IconThinkOutline16 />
