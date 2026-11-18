@@ -6,6 +6,8 @@ export const en = {
   officialTools: 'Official tools',
   replyDetails: 'Reply details',
   replySkill: 'Skill used',
+  requestWithoutSkill: 'No text skill was included in this request.',
+  unconfirmedSkill: 'Skill delivery could not be confirmed for this reply.',
   selectSkill: 'Use in this chat',
   unselectSkill: 'Turn off for this chat',
   saveSkill: 'Save to my skills',

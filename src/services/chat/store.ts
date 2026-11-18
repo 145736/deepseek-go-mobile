@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { matchSkill } from './matchSkill.js'
+import { skillSystemPrompt } from './skillContext.js'
 import { availableSkill } from '../skills.js'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
@@ -37,8 +38,6 @@ import {
 
 /** deepseek-flash 同时支持深度思考与图片输入 */
 const MODEL: ChatModel = 'deepseek-flash'
-/** 所有生成请求统一携带的助手身份说明 */
-const SYSTEM_PROMPT = '该助手为DeepSeek，由深度求索公司创造。'
 /** 保留最近打开的详情；当前会话、生成中及尚未成功保存的会话不淘汰。 */
 const SESSION_CACHE_LIMIT = 5
 /** 安全审核固定开启，所有请求都走扩展模式 */
@@ -1030,7 +1029,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           ...reply,
           latestReminder,
           skillRef: chosenRef,
-          skillResolved: true,
+          skillResolved: prepared.prefix ? initial.skillResolved : true,
           skill: prepared.prefix ? initial.skill : skill,
           continuedWithoutSkill: prepared.prefix && initial.skill && !skill ? true : initial.continuedWithoutSkill,
         }
@@ -1046,9 +1045,7 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
-            system: skill
-              ? [SYSTEM_PROMPT, skill.body].join('\n\n')
-              : SYSTEM_PROMPT,
+            system: skillSystemPrompt(prepared.history, skill),
             messages,
             safety_check: SAFETY_CHECK,
             ...generationOptions(initial, titleRequests.has(controller)),

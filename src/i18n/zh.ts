@@ -4,6 +4,8 @@ export const zh = {
   officialTools: '官方工具',
   replyDetails: '回复详情',
   replySkill: '本轮技能',
+  requestWithoutSkill: '本轮请求未附带文字技能。',
+  unconfirmedSkill: '此回答缺少可确认的技能发送记录。',
   selectSkill: '在本对话中使用',
   unselectSkill: '从本对话停用',
   saveSkill: '保存到我的技能',

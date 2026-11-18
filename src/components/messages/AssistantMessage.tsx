@@ -4,6 +4,7 @@ import { memo } from 'react'
 import { IconRefreshOutline16, IconWarningOutline16 } from '../base/icons.js'
 import { describeReply } from '../../services/chat/describe.js'
 import { canContinueReply } from '../../services/chat/reply.js'
+import { confirmedSkillRequest } from '../../services/chat/skillContext.js'
 import { continueReply, regenerateReply } from '../../services/chat/store.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
 import type { AssistantMessage as AssistantMessageType } from '../../services/chat/types.js'
@@ -140,7 +141,10 @@ export const AssistantMessage = memo(function AssistantMessage({
       ) : null}
       {message.model && !streaming && (
         <details className="reply-skill">
-          <summary>{t('replyDetails')}</summary>
+            <summary>
+              {t('replyDetails')}
+              {confirmedSkillRequest(message) && message.skill && ' · ' + message.skill.name}
+            </summary>
           <p>
             {message.model === 'deepseek-flash' ? 'Flash' : 'Pro'}
             {message.effort && message.thinking
@@ -152,12 +156,18 @@ export const AssistantMessage = memo(function AssistantMessage({
           </p>
           {message.continuedWithoutSkill && <p>{t('continuedWithoutSkill')}</p>}
           {message.skillMatchSkipped && <p>{t('matchSkipped')}</p>}
-          {message.skill && (
-            <p>
-              {t(message.skillMode === 'auto' ? 'matchedSkill' : message.skillMode === 'mentioned' ? 'mentionedSkill' : 'replySkill')} · {message.skill.name}
-              {'\n'}
-              {message.skill.body}
-            </p>
+            {confirmedSkillRequest(message) && !message.skill && <p>{t('requestWithoutSkill')}</p>}
+            {!confirmedSkillRequest(message) && <p>{t('unconfirmedSkill')}</p>}
+            {confirmedSkillRequest(message) && message.skill && (
+              <>
+                <p>
+                  {t(message.skillMode === 'auto' ? 'matchedSkill' : message.skillMode === 'mentioned' ? 'mentionedSkill' : 'replySkill')} · {message.skill.name}
+                </p>
+                <details>
+                  <summary>{t('skillInstructions')}</summary>
+                  <p>{message.skill.body}</p>
+                </details>
+              </>
           )}
         </details>
       )}
