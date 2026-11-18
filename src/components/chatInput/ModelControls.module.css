@@ -85,116 +85,210 @@ button.access:focus-visible {
   cursor: default;
 }
 .effortSheet {
-  --thumb-size: 38px;
-  --coral: #ef896e;
+  --thumb-size: 30px;
+  --paper: color-mix(in srgb, var(--dsw-alias-bg-base) 88%, #d5c5a8);
+  --rail: 25px;
+  --ink: #95480f;
+  --orange: #e98035;
+  --arrival: cubic-bezier(0.16, 1, 0.3, 1);
   position: absolute;
   z-index: 2;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(100%, 360px);
-  padding: 0 8px 2px;
+  right: 4px;
+  bottom: calc(100% + 7px);
+  width: min(282px, calc(100% - 8px));
   box-sizing: border-box;
-  text-align: center;
-  cursor: default;
+  padding: 6px 12px 4px;
   color: var(--dsw-alias-label-primary);
+  background: var(--paper);
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  border-radius: 18px;
+  box-shadow:
+    0 5px 18px rgb(47 35 21 / 9%),
+    inset 0 1px 0 rgb(255 255 255 / 18%);
+  transform-origin: 64% bottom;
+  animation: revealDial 190ms var(--arrival) both;
   -webkit-user-select: none;
   user-select: none;
+  cursor: default;
 }
-.effortSheet::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  inset: -32px -6px -1px;
-  border-radius: 25px;
-  background-color: color-mix(in srgb, var(--dsw-alias-bg-base) 85%, transparent);
-  -webkit-backdrop-filter: blur(9px);
-  backdrop-filter: blur(9px);
-  mask-image: linear-gradient(transparent, black 35%);
+@supports ((-webkit-backdrop-filter: blur(12px)) or (backdrop-filter: blur(12px))) {
+  .effortSheet {
+    background: color-mix(in srgb, var(--paper) 91%, transparent);
+    -webkit-backdrop-filter: blur(14px) saturate(110%);
+    backdrop-filter: blur(14px) saturate(110%);
+  }
+}
+.effortSheet[data-closing='true'] {
   pointer-events: none;
+  animation: hideDial 115ms ease-in both;
+}
+.heading {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  min-height: 43px;
 }
 .level {
-  display: grid;
-  place-items: center;
-  height: 44px;
-  margin-bottom: 5px;
-  font-size: 21px;
-  font-weight: 600;
+  color: var(--ink);
+  font-size: 17px;
+  font-weight: 620;
+  line-height: 22px;
+  animation: readLevel 125ms ease-out;
+}
+.modelName {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 18px;
+}
+.bolt {
+  position: absolute;
+  top: 5px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  color: var(--dsw-alias-label-secondary);
 }
 .effortSheet button.close {
   position: absolute;
-  right: 10px;
-  top: 0;
+  top: -6px;
+  right: -10px;
   width: 44px;
   height: 44px;
+  color: var(--dsw-alias-label-secondary);
   border: 0;
   background: transparent;
-  color: var(--dsw-alias-label-secondary);
+}
+.effortSheet button.close svg {
+  width: 13px;
+  height: 13px;
 }
 .trackShell {
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 40px;
-  padding: 8px;
-  background: var(--dsw-alias-bg-base);
-  box-shadow: 0 4px 18px rgb(0 0 0 / 8%);
+  position: relative;
+  height: 44px;
 }
 .track {
-  position: relative;
-  border-radius: 32px;
-  background: var(--dsw-alias-interactive-bg-hover);
-  overflow: hidden;
-}
-.track::before {
-  content: '';
   position: absolute;
-  inset: 0 auto 0 0;
-  width: clamp(calc(var(--thumb-size) / 2), var(--fill), 100%);
-  background: var(--coral);
+  inset: 50% 0 auto;
+  transform: translateY(-50%);
+  height: var(--rail);
+  border-radius: 100px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--dsw-alias-label-primary) 12%, var(--dsw-alias-bg-base));
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 4%);
 }
+.travel,
 .stops {
   position: absolute;
   inset: 0 calc(var(--thumb-size) / 2);
+  pointer-events: none;
+}
+.carriage,
+.fill {
+  position: absolute;
+  inset: 0;
+  transform: translateX(var(--position));
+  transition: transform 205ms cubic-bezier(0.19, 1.19, 0.32, 1);
+}
+.fill::before {
+  content: '';
+  position: absolute;
+  inset: 0 100% 0 -130%;
+  background: var(--orange);
+}
+.stops {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  pointer-events: none;
 }
 .stops i {
-  width: 6px;
-  height: 6px;
+  width: 4px;
+  height: 4px;
   border-radius: 50%;
-  background: var(--dsw-alias-label-secondary);
-  opacity: 0.45;
+  background: color-mix(in srgb, var(--dsw-alias-label-primary) 29%, transparent);
 }
-.track input {
-  display: block;
-  position: relative;
-  appearance: none;
-  -webkit-appearance: none;
+.stops i[data-filled='true'] {
+  background: rgb(255 255 255 / 43%);
+}
+.thumb {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: var(--thumb-size);
+  height: var(--thumb-size);
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgb(70 49 31 / 13%);
+  box-shadow: 0 2px 4px rgb(57 40 24 / 16%);
+  transition: transform 140ms var(--arrival);
+}
+.trackShell[data-dragging='true'] .carriage,
+.trackShell[data-dragging='true'] .fill {
+  transition: none;
+}
+.trackShell[data-dragging='true'] .thumb {
+  transform: translate(-50%, -50%) scale(1.08);
+}
+.trackShell input {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
-  width: 100%;
-  height: 46px;
-  border-radius: 32px;
   border: 0;
-  background: transparent;
+  opacity: 0;
   cursor: pointer;
   touch-action: none;
 }
-.track input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: var(--thumb-size);
-  height: var(--thumb-size);
-  border: 1px solid rgb(0 0 0 / 8%);
-  border-radius: 50%;
-  background: white;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 15%);
+.trackShell:has(input:focus-visible) {
+  outline: 2px solid var(--dsw-alias-brand-text);
+  outline-offset: 1px;
+  border-radius: 20px;
 }
-.track input::-moz-range-thumb {
-  box-sizing: border-box;
-  width: var(--thumb-size);
-  height: var(--thumb-size);
-  border: 1px solid rgb(0 0 0 / 8%);
-  border-radius: 50%;
-  background: white;
+[data-ds-dark-theme] .effortSheet {
+  --ink: #ffb47c;
+  --orange: #dc7d3d;
+}
+@keyframes revealDial {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.965);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes hideDial {
+  to {
+    opacity: 0;
+    transform: translateY(3px) scale(0.98);
+  }
+}
+@keyframes readLevel {
+  from {
+    opacity: 0.65;
+    transform: translateY(1px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .effortSheet,
+  .effortSheet[data-closing='true'] {
+    animation-duration: 1ms;
+  }
+  .level {
+    animation: none;
+  }
+  .trackShell .thumb,
+  .carriage,
+  .fill {
+    transition: none;
+  }
+  .trackShell[data-dragging='true'] .thumb {
+    transform: translate(-50%, -50%);
+  }
 }

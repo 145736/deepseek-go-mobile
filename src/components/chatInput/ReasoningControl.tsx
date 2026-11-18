@@ -12,7 +12,12 @@ export function ReasoningControl({ className }: { className: string }) {
   const thinking = useSettings((state) => state.thinking)
   const effort = useSettings((state) => state.effort)
   const index = levels.indexOf(effort)
-  const [open, setOpen] = useState(false)
+  const model = useSettings((state) => state.model)
+  const [phase, setPhase] = useState<'closed' | 'open' | 'closing'>('closed')
+  const open = phase === 'open'
+  const [dragPosition, setDragPosition] = useState<number | null>(null)
+  const position = dragPosition ?? index / (levels.length - 1)
+  const preview = Math.round(position * (levels.length - 1))
   const id = useId()
   const trigger = useRef<HTMLButtonElement>(null)
   const range = useRef<HTMLInputElement>(null)
@@ -27,10 +32,11 @@ export function ReasoningControl({ className }: { className: string }) {
 
   function show(keyboard = false) {
     keepDraftFocus.current = !keyboard && document.activeElement instanceof HTMLTextAreaElement
-    setOpen(true)
+    setPhase('open')
   }
   function dismiss() {
-    setOpen(false)
+    setDragPosition(null)
+    setPhase('closing')
     if (!keepDraftFocus.current) {
       trigger.current?.focus({ preventScroll: true })
     }
@@ -57,11 +63,11 @@ export function ReasoningControl({ className }: { className: string }) {
 
   // Native keyboard and assistive controls use the range. Pointer input also keeps
   // Safari's text selection and keyboard while the thumb is being dragged.
-  function chooseAt(clientX: number, input: HTMLInputElement) {
+  function positionAt(clientX: number, input: HTMLInputElement) {
     const rect = input.getBoundingClientRect()
     const radius = parseFloat(getComputedStyle(input).getPropertyValue('--thumb-size')) / 2
     const fraction = (clientX - rect.left - radius) / (rect.width - 2 * radius)
-    setReasoningLevel(levels[Math.min(2, Math.max(0, Math.round(fraction * 2)))])
+    return Math.max(0, Math.min(1, fraction))
   }
 
   return (
@@ -147,16 +153,33 @@ export function ReasoningControl({ className }: { className: string }) {
       <button type="button" className={styles.access} onClick={() => show(true)}>
         {t('effortChoice')}
       </button>
-      {open && (
+      {phase !== 'closed' && (
         <>
           <div
             className={styles.dismiss}
             aria-hidden="true"
-            onPointerDown={(event) => event.preventDefault()}
-            onClick={dismiss}
+            onMouseDown={(event) => event.preventDefault()}
+            onPointerDown={(event) => {
+              event.preventDefault()
+              if (event.isPrimary && event.button === 0) {
+                event.currentTarget.setPointerCapture(event.pointerId)
+              }
+            }}
+            onPointerUp={(event) => {
+              if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                dismiss()
+              }
+            }}
           />
           <div
             className={styles.effortSheet}
+            data-closing={phase === 'closing'}
+            aria-hidden={!open}
+            onAnimationEnd={(event) => {
+              if (event.target === event.currentTarget && phase === 'closing') {
+                setPhase('closed')
+              }
+            }}
             role="dialog"
             aria-label={t('effortChoice')}
             id={id}
@@ -167,51 +190,96 @@ export function ReasoningControl({ className }: { className: string }) {
             }}
             onBlur={(event) => {
               if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) {
-                setOpen(false)
+                setDragPosition(null)
+                setPhase('closing')
               }
             }}
           >
-            <div className={styles.level}>{t(labels[index])}</div>
-            <button
-              type="button"
-              className={styles.close}
-              aria-label={t('close')}
-              onClick={dismiss}
+            <div className={styles.heading}>
+              <svg
+                className={styles.bolt}
+                viewBox="0 0 20 20"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.45"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M11.5 2.5 4.4 11h4.7l-.8 6.5 7.3-9H11z" />
+              </svg>
+              <span className={styles.level} key={preview}>
+                {t(labels[preview])}
+              </span>
+              <span className={styles.modelName}>
+                DeepSeek {model === 'deepseek-flash' ? 'Flash' : 'Pro'}
+              </span>
+              <button
+                type="button"
+                className={styles.close}
+                aria-label={t('close')}
+                onClick={dismiss}
+              >
+                <IconCloseFill14 />
+              </button>
+            </div>
+            <div
+              className={styles.trackShell}
+              data-dragging={dragPosition !== null}
+              style={{ '--position': `${position * 100}%` } as CSSProperties}
             >
-              <IconCloseFill14 />
-            </button>
-            <div className={styles.trackShell}>
-              <div className={styles.track} style={{ '--fill': `${index * 50}%` } as CSSProperties}>
-                <div className={styles.stops} aria-hidden="true">
-                  <i />
-                  <i />
-                  <i />
+              <div className={styles.track} aria-hidden="true">
+                <div className={styles.travel}>
+                  <div className={styles.fill} />
                 </div>
-                <input
-                  ref={range}
-                  type="range"
-                  min={0}
-                  max={2}
-                  step={1}
-                  value={index}
-                  aria-label={t('effortChoice')}
-                  aria-valuetext={t(labels[index])}
-                  onPointerDown={(event) => {
-                    if (!event.isPrimary || event.button !== 0) {
-                      return
-                    }
-                    event.preventDefault()
-                    event.currentTarget.setPointerCapture(event.pointerId)
-                    chooseAt(event.clientX, event.currentTarget)
-                  }}
-                  onPointerMove={(event) => {
-                    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-                      chooseAt(event.clientX, event.currentTarget)
-                    }
-                  }}
-                  onChange={(event) => setReasoningLevel(levels[event.target.valueAsNumber])}
-                />
+                <div className={styles.stops}>
+                  {levels.map((level, i) => (
+                    <i key={level} data-filled={i / (levels.length - 1) <= position} />
+                  ))}
+                </div>
               </div>
+              <div className={styles.travel} aria-hidden="true">
+                <div className={styles.carriage}>
+                  <span className={styles.thumb} />
+                </div>
+              </div>
+              <input
+                ref={range}
+                type="range"
+                min={0}
+                max={2}
+                step={1}
+                value={preview}
+                aria-label={t('effortChoice')}
+                aria-valuetext={t(labels[preview])}
+                onPointerDown={(event) => {
+                  if (!event.isPrimary || event.button !== 0) {
+                    return
+                  }
+                  event.preventDefault()
+                  event.currentTarget.setPointerCapture(event.pointerId)
+                  setDragPosition(positionAt(event.clientX, event.currentTarget))
+                }}
+                onPointerMove={(event) => {
+                  if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                    setDragPosition(positionAt(event.clientX, event.currentTarget))
+                  }
+                }}
+                onPointerUp={(event) => {
+                  if (!event.currentTarget.hasPointerCapture(event.pointerId)) {
+                    return
+                  }
+                  const value = positionAt(event.clientX, event.currentTarget)
+                  setReasoningLevel(levels[Math.round(value * (levels.length - 1))])
+                  setDragPosition(null)
+                }}
+                onLostPointerCapture={() => setDragPosition(null)}
+                onPointerCancel={() => setDragPosition(null)}
+                onChange={(event) => {
+                  if (dragPosition === null) {
+                    setReasoningLevel(levels[event.target.valueAsNumber])
+                  }
+                }}
+              />
             </div>
           </div>
         </>
