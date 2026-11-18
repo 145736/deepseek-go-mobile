@@ -196,17 +196,6 @@ export function ReasoningControl({ className }: { className: string }) {
             }}
           >
             <div className={styles.heading}>
-              <svg
-                className={styles.bolt}
-                viewBox="0 0 20 20"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.45"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M11.5 2.5 4.4 11h4.7l-.8 6.5 7.3-9H11z" />
-              </svg>
               <span className={styles.level} key={preview}>
                 {t(labels[preview])}
               </span>

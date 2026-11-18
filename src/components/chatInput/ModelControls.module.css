@@ -141,14 +141,6 @@ button.access:focus-visible {
   font-size: 12px;
   line-height: 18px;
 }
-.bolt {
-  position: absolute;
-  top: 5px;
-  left: 1px;
-  width: 16px;
-  height: 16px;
-  color: var(--dsw-alias-label-secondary);
-}
 .effortSheet button.close {
   position: absolute;
   top: -6px;
