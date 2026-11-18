@@ -23,7 +23,7 @@ export const SessionView = ({
   return (
     <div className={styles.view}>
       {isMobile ? (
-        <MobileHeader title={title} />
+        <MobileHeader />
       ) : (
         <div className={styles.header}>
           <div className={clsx(styles.title, siderCollapsed && styles.withCollapsedSider)}>
@@ -37,7 +37,6 @@ export const SessionView = ({
         footer={
           <div className={styles.inputContainer}>
             <ChatInput sessionId={session.id} />
-            <div className={styles.caveat}>{t('contentCaveat')}</div>
           </div>
         }
       />

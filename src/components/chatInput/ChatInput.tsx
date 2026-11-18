@@ -1,5 +1,5 @@
 import clsx from 'clsx'
-import { memo, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
+import { memo, useCallback, useEffect, useRef } from 'react'
 import {
   IconGlobeLanguageOutline14,
   IconPaperclipOutline16,
@@ -55,25 +55,6 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const search = useSettings((state) => state.search)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const togglesRef = useRef<HTMLDivElement>(null)
-
-  useLayoutEffect(() => {
-    const toggles = togglesRef.current
-    if (!toggles) {
-      return
-    }
-
-    const updateLabels = () => {
-      toggles.classList.remove(styles.collapsedToggles)
-      toggles.classList.toggle(styles.collapsedToggles, toggles.scrollWidth > toggles.clientWidth)
-    }
-
-    updateLabels()
-    const observer = new ResizeObserver(updateLabels)
-    observer.observe(toggles)
-    return () => observer.disconnect()
-  }, [t])
-
   const acceptFiles = (files: File[]) => {
     if (files.length === 0 || useChatStore.getState().importingHistory || !ensureApiKey()) {
       return
@@ -206,7 +187,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       </div>
       <div className={styles.functionRow}>
         {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
-        <div ref={togglesRef} className={styles.toggles}>
+        <div className={styles.toggles}>
           <Tooltip content={t('deactivatedThinkTooltip')}>
             <button
               type="button"
@@ -216,7 +197,6 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               onClick={() => setThinking(!thinking)}
             >
               <IconThinkOutline14 />
-              <span className={styles.toggleLabel}>{t('thinkingSwitch')}</span>
             </button>
           </Tooltip>
           <Tooltip content={t('deactivatedSearchTooltip')}>
@@ -228,7 +208,6 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               onClick={() => setSearch(!search)}
             >
               <IconGlobeLanguageOutline14 />
-              <span className={styles.toggleLabel}>{t('search')}</span>
             </button>
           </Tooltip>
         </div>

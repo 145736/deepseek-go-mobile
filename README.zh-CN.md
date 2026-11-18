@@ -5,7 +5,7 @@
 ## iPhone 使用
 
 1. 用 Safari 打开 https://145736.github.io/deepseek-go-mobile/ ，无需 ChatGPT 或 GitHub 登录。
-2. 点击右上角「设置」→「连接服务」，填写自己的 DeepSeek API Key，点「确定」。校验调用官方 `/models` 接口。
+2. 点左上角菜单，再点「设置」→「连接服务」，填写自己的 DeepSeek API Key，点「确定」。校验调用官方 `/models` 接口。
 3. 回到聊天页发送消息。深度思考、智能搜索分别开关；同时开启就是深度思考搜索。链接直接粘贴到消息里即可。
 4. 回形针上传图片、PDF、Office 等文件。麦克风录音后由官方 ASR 转写；回复下方的朗读按钮调用官方 TTS。
 5. Safari「分享」→「添加到主屏幕」。语音输入需要 HTTPS 和麦克风权限。网页能添加到主屏幕，但并不提供离线 AI 服务。

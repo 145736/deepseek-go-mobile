@@ -251,10 +251,6 @@
   min-width: 0;
 }
 
-.collapsedToggles .toggleLabel {
-  display: none;
-}
-
 .toggle {
   display: inline-flex;
   flex-shrink: 0;
@@ -331,7 +327,7 @@
   }
 }
 
-/* Mobile-first composer: keep labeled toggles and 44px touch controls. */
+/* Mobile-first composer: preserve 44px touch controls. */
 .wrapper {
   border-radius: 16px;
 }
@@ -347,8 +343,8 @@
   gap: 4px;
 }
 .toggle {
-  min-height: 44px;
-  height: auto;
+  width: 44px;
+  height: 44px;
   padding: 0 10px;
   border: 0;
   border-radius: 10px;
@@ -365,7 +361,7 @@
 @media not all and (min-width: 768px) {
   .textarea,
   .mirror {
-    min-height: 64px;
+    min-height: calc(var(--line-height) + var(--input-padding-top));
     font-size: 16px;
   }
   .mirror {
@@ -376,9 +372,16 @@
     font-size: 12px;
     gap: 4px;
   }
+  .functionRow {
+    margin-top: 0;
+    padding: 0 4px 4px;
+  }
+  .wrapper {
+    --input-padding-top: 6px;
+  }
   .toggle svg {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
   }
   .remove {
     opacity: 1;
