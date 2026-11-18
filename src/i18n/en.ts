@@ -1,7 +1,8 @@
 import type { zh } from './zh.js'
 
 export const en = {
-  modelControls: 'Model and reasoning',
+  modelControls: 'Attachments and model',
+  reasoningGesture: 'Tap to toggle. Hold or press Arrow Up to adjust reasoning effort.',
   modelChoice: 'Model',
   effortChoice: 'Reasoning effort',
   effortOff: 'Off',

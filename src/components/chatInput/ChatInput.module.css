@@ -11,7 +11,8 @@
   border-radius: 24px;
   border: 1px solid var(--dsw-alias-border-l2-darkmode-thin);
   background: var(--dsw-specific-input-major);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
 }
 
 .session {
@@ -245,7 +246,7 @@
 
 .toggles {
   display: flex;
-  flex: 1;
+  margin-inline-start: auto;
   align-items: center;
   gap: 10px;
   min-width: 0;
@@ -298,7 +299,6 @@
   flex-shrink: 0;
   align-items: center;
   gap: 4px;
-  margin-left: auto;
 }
 
 .sendButton {
@@ -368,7 +368,7 @@
   touch-action: manipulation;
 }
 .toggles button > svg,
-.toggles .plus {
+.functionRow .plus {
   display: block;
   width: 18px;
   height: 18px;
@@ -383,12 +383,12 @@
   --press-scale: .88;
 }
 .toggles button:active > svg,
-.toggles button:active > .plus {
+.functionRow button:active > .plus {
   transition-duration: 55ms;
 }
 @media (prefers-reduced-motion: reduce) {
   .toggles button > svg,
-  .toggles button > .plus {
+  .functionRow button > .plus {
     transform: translateY(var(--icon-lift, 0px));
     transition: none;
   }
@@ -473,8 +473,46 @@
   outline: none;
 }
 .wrapper:focus-within {
-  border-color: var(--dsw-alias-brand-text);
+  border-color: color-mix(in srgb, var(--dsw-alias-label-primary) 26%, transparent);
 }
+.toggle {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+}
+.functionRow .plus { width: 20px; height: 20px; }
+.plus::before, .plus::after { width: 18px; }
+.toggle svg g { transition: transform 140ms ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .toggle svg g { transition: none; }
+}
+
+/* Keep the same textarea mounted as the keyboard opens, preserving the IME
+   composition and caret while moving between the two layouts. */
+.wrapper[data-compact='true'] {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  width: calc(100% - 20px);
+  margin-inline: auto;
+  padding: 1px 4px;
+  border-radius: 28px;
+}
+.wrapper[data-compact='true'] .functionRow,
+.wrapper[data-compact='true'] .right { display: contents; }
+.wrapper[data-compact='true'] .functionRow > button {
+  grid-column: 1; grid-row: 1;
+}
+.wrapper[data-compact='true'] .textareaWrapper { grid-column: 2; grid-row: 1; min-width: 0; }
+.wrapper[data-compact='true'] .right button { grid-column: 3; grid-row: 1; }
+.wrapper[data-compact='true'] .toggles,
+.wrapper[data-compact='true'] .sendButton { display: none; }
+.wrapper[data-compact='true'] .textarea,
+.wrapper[data-compact='true'] .mirror {
+  height: 44px;
+  min-height: 44px;
+  padding: 10px 6px;
+}
+
 
 @media (pointer: coarse) {
   .toggle {

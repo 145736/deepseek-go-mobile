@@ -1,20 +1,18 @@
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
-import { useEffect, useId, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useTranslate } from '../../i18n/index.js'
+import { setModel, useSettings, useFlashPrompt } from '../../services/settings.js'
 import {
-  setModel,
-  setReasoningLevel,
-  useSettings,
-  useFlashPrompt,
-} from '../../services/settings.js'
-import { IconCheckOutline16, IconPaperclipOutline16 } from '../base/icons.js'
+  IconCheckOutline16,
+  IconChevronRightOutline14,
+  IconPaperclipOutline16,
+  IconThinkOutline16,
+} from '../base/icons.js'
 import { useAnchoredPosition, useDismiss } from '../base/anchored.js'
 import styles from './ModelControls.module.css'
 
-const levels = ['off', 'low', 'high', 'max'] as const
-const labels = ['effortOff', 'effortLow', 'effortHigh', 'effortMax'] as const
 const models = [
   ['deepseek-flash', 'Flash'],
   ['deepseek-v4-pro', 'Pro'],
@@ -31,23 +29,45 @@ export function ModelControls({
 }) {
   const t = useTranslate()
   const model = useSettings((state) => state.model)
-  const level = useSettings((state) => (state.thinking ? state.effort : 'off'))
-  const index = levels.indexOf(level)
-  const [open, setOpen] = useState(false)
+  const [page, setPage] = useState<'actions' | 'models' | null>(null)
+  const open = page !== null
+  const keyboard = useRef(false)
   const id = useId()
   const { anchorRef, floatingRef, position } = useAnchoredPosition<
     HTMLButtonElement,
     HTMLDivElement
-  >(open, { side: 'top', align: 'start', offset: 6, maxHeight: 320, minSpace: 190 })
-  useDismiss(open, [anchorRef, floatingRef], () => setOpen(false))
-  useEffect(() => {
-    if (open) {
-      floatingRef.current?.focus({ preventScroll: true })
+  >(open, {
+    side: 'top',
+    align: 'start',
+    offset: 6,
+    maxHeight: 240,
+    minSpace: 108,
+    measureKey: page,
+  })
+  function close(restore = false) {
+    setPage(null)
+    if (restore && keyboard.current) {
+      anchorRef.current?.focus({ preventScroll: true })
     }
-  }, [open, floatingRef])
+  }
+  useDismiss(open, [anchorRef, floatingRef], () =>
+    close(
+      document.activeElement === document.body ||
+        Boolean(floatingRef.current?.contains(document.activeElement))
+    )
+  )
+  useEffect(() => {
+    if (page && keyboard.current) {
+      const panel = floatingRef.current
+      const button =
+        panel?.querySelector<HTMLButtonElement>('button[aria-pressed="true"]') ??
+        panel?.querySelector('button')
+      button?.focus({ preventScroll: true })
+    }
+  }, [page, floatingRef])
   useEffect(() => {
     if (disabled) {
-      setOpen(false)
+      setPage(null)
     }
   }, [disabled])
 
@@ -62,7 +82,10 @@ export function ModelControls({
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? id : undefined}
-        onClick={() => setOpen((value) => !value)}
+        onClick={(event) => {
+          keyboard.current = event.detail === 0
+          setPage(open ? null : 'actions')
+        }}
       >
         <span className={plusClass} aria-hidden="true" />
       </button>
@@ -76,77 +99,58 @@ export function ModelControls({
             tabIndex={-1}
             className={styles.panel}
             style={{ ...position, visibility: position ? 'visible' : 'hidden' }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                setOpen(false)
-                anchorRef.current?.focus({ preventScroll: true })
+            onMouseDown={(event) => {
+              if (document.activeElement instanceof HTMLTextAreaElement) {
+                event.preventDefault()
               }
             }}
             onBlur={(event) => {
-              if (
-                event.relatedTarget &&
-                event.relatedTarget !== anchorRef.current &&
-                !event.currentTarget.contains(event.relatedTarget)
-              ) {
-                setOpen(false)
+              if (event.relatedTarget && !event.currentTarget.contains(event.relatedTarget)) {
+                close()
               }
             }}
           >
-            <div className={styles.modelRow} role="group" aria-label={t('modelChoice')}>
-              <span>{t('modelChoice')}</span>
-              <div className={styles.segment}>
-                {models.map(([value, label]) => (
-                  <button
-                    type="button"
-                    key={value}
-                    aria-pressed={model === value}
-                    onClick={() => setModel(value)}
-                  >
-                    {label}
-                    {model === value && <IconCheckOutline16 />}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className={styles.levelHeading}>
-              <label htmlFor={id + '-effort'}>{t('effortChoice')}</label>
-              <strong>{t(labels[index])}</strong>
-            </div>
-            <div className={styles.scale}>
-              <input
-                id={id + '-effort'}
-                type="range"
-                min={0}
-                max={3}
-                step={1}
-                value={index}
-                aria-valuetext={t(labels[index])}
-                onChange={(event) => setReasoningLevel(levels[event.target.valueAsNumber])}
-              />
-              <div className={styles.ticks}>
-                {levels.map((value, i) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={i === index}
-                    onClick={() => setReasoningLevel(value)}
-                  >
-                    {t(labels[i])}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button
-              className={styles.upload}
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                onUpload()
-              }}
-            >
-              <IconPaperclipOutline16 />
-              {t('addMedia')}
-            </button>
+            {page === 'actions' ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    close(true)
+                    onUpload()
+                  }}
+                >
+                  <IconPaperclipOutline16 />
+                  {t('addMedia')}
+                </button>
+                <button type="button" onClick={() => setPage('models')}>
+                  <IconThinkOutline16 />
+                  {t('modelChoice')}
+                  <span className={styles.value}>
+                    {models.find(([value]) => value === model)?.[1]}
+                  </span>
+                  <IconChevronRightOutline14 />
+                </button>
+              </>
+            ) : (
+              models.map(([value, label]) => (
+                <button
+                  type="button"
+                  key={value}
+                  aria-pressed={model === value}
+                  onClick={() => {
+                    setModel(value)
+                    close(true)
+                  }}
+                >
+                  {label}
+                  {model === value && (
+                    <span className={styles.check}>
+                      <IconCheckOutline16 />
+                    </span>
+                  )}
+                </button>
+              ))
+            )}
           </div>,
           document.body
         )}

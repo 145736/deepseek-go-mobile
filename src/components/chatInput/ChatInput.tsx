@@ -1,12 +1,7 @@
 import clsx from 'clsx'
-import { memo, useCallback, useEffect, useRef } from 'react'
-import {
-  IconGlobeLanguageOutline14,
-  IconSendOutline16,
-  IconStopFill16,
-  IconThinkOutline14,
-} from '../base/icons.js'
-import { requireFlash, setSearch, setThinking, useSettings } from '../../services/settings.js'
+import { memo, useCallback, useEffect, useRef, useState } from 'react'
+import { IconGlobeLanguageOutline14, IconSendOutline16, IconStopFill16 } from '../base/icons.js'
+import { requireFlash, setSearch, useSettings } from '../../services/settings.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { sendMessage, stopReply, useChatStore } from '../../services/chat/store.js'
 import {
@@ -20,6 +15,7 @@ import {
   useDrafts,
 } from '../../services/chat/drafts.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
+import { ReasoningControl } from './ReasoningControl.js'
 import { ModelControls } from './ModelControls.js'
 import { Tooltip } from '../base/Tooltip.js'
 import { ensureApiKey } from '../settings/settingsDialogState.js'
@@ -51,9 +47,36 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const thinking = useSettings((state) => state.thinking)
   const importingHistory = useChatStore((state) => state.importingHistory)
   const isMobile = useIsMobile()
+  const [editing, setEditing] = useState(false)
   const search = useSettings((state) => state.model === 'deepseek-flash' && state.search)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  // Safari can dismiss its keyboard while leaving the textarea focused.
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!isMobile || !editing || !viewport) {
+      return
+    }
+    let keyboardVisible = false
+    const trackKeyboard = () => {
+      if (viewport.scale !== 1) {
+        return
+      }
+      const covered = window.innerHeight - viewport.height
+      if (covered > 140) {
+        keyboardVisible = true
+      } else if (
+        keyboardVisible &&
+        covered < 60 &&
+        document.activeElement === textareaRef.current
+      ) {
+        textareaRef.current?.blur()
+      }
+    }
+    trackKeyboard()
+    viewport.addEventListener('resize', trackKeyboard)
+    return () => viewport.removeEventListener('resize', trackKeyboard)
+  }, [editing, isMobile])
   const acceptFiles = (files: File[]) => {
     if (
       files.length === 0 ||
@@ -117,6 +140,9 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
 
+  const compact =
+    isMobile && !editing && !text && !attachments.length && !streaming && voice.status === 'idle'
+
   const send = () => {
     if (
       useChatStore.getState().importingHistory ||
@@ -140,6 +166,21 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   return (
     <div
       className={clsx(styles.wrapper, sessionId === null ? styles.home : styles.session)}
+      data-compact={compact}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setEditing(false)
+        }
+      }}
+      onMouseDown={(event) => {
+        if (
+          document.activeElement === textareaRef.current &&
+          event.target instanceof Element &&
+          event.target.closest('button')
+        ) {
+          event.preventDefault()
+        }
+      }}
       onClick={(event) => {
         if (event.target === event.currentTarget) {
           textareaRef.current?.focus({ preventScroll: true })
@@ -152,7 +193,9 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           ref={textareaRef}
           className={clsx(styles.textarea, recording && isMobile && styles.textareaHidden)}
           placeholder={t('chatInputPlaceholderChat')}
-          rows={2}
+          rows={1}
+          aria-label={t('chatInputPlaceholderChat')}
+          onFocus={() => setEditing(true)}
           // 移动端不自动聚焦，避免一打开就弹出键盘
           autoFocus={!isMobile}
           disabled={importingHistory}
@@ -190,60 +233,51 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         </div>
       </div>
       <div className={styles.functionRow}>
-        {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
-        <div className={styles.toggles}>
-          <ModelControls
-            disabled={importingHistory}
-            plusClass={styles.plus}
-            onUpload={() => {
-              const pick = () => {
-                if (ensureApiKey()) {
-                  fileInputRef.current?.click()
-                }
+        <ModelControls
+          disabled={importingHistory}
+          plusClass={styles.plus}
+          onUpload={() => {
+            const pick = () => {
+              if (ensureApiKey()) {
+                fileInputRef.current?.click()
               }
-              if (requireFlash(pick)) {
-                pick()
-              }
-            }}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            hidden
-            accept={ACCEPT}
-            onChange={(event) => {
-              acceptFiles(Array.from(event.target.files ?? []))
-              event.target.value = ''
-            }}
-          />
-          <Tooltip content={t('deactivatedThinkTooltip')}>
-            <button
-              type="button"
-              className={clsx(styles.toggle, thinking && styles.selected)}
-              aria-label={t('thinkingSwitch')}
-              aria-pressed={thinking}
-              onClick={() => setThinking(!thinking)}
-            >
-              <IconThinkOutline14 />
-            </button>
-          </Tooltip>
-          <Tooltip content={t('deactivatedSearchTooltip')}>
-            <button
-              type="button"
-              className={clsx(styles.toggle, search && styles.selected)}
-              aria-label={t('search')}
-              aria-pressed={search}
-              onClick={() => {
-                if (requireFlash(() => setSearch(true))) {
-                  setSearch(!search)
-                }
-              }}
-            >
-              <IconGlobeLanguageOutline14 />
-            </button>
-          </Tooltip>
-        </div>
+            }
+            if (requireFlash(pick)) {
+              pick()
+            }
+          }}
+        />
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          hidden
+          accept={ACCEPT}
+          onChange={(event) => {
+            acceptFiles(Array.from(event.target.files ?? []))
+            event.target.value = ''
+          }}
+        />
+        {!compact && (
+          <div className={styles.toggles}>
+            <Tooltip content={t('deactivatedSearchTooltip')}>
+              <button
+                type="button"
+                className={clsx(styles.toggle, search && styles.selected)}
+                aria-label={t('search')}
+                aria-pressed={search}
+                onClick={() => {
+                  if (requireFlash(() => setSearch(true))) {
+                    setSearch(!search)
+                  }
+                }}
+              >
+                <IconGlobeLanguageOutline14 />
+              </button>
+            </Tooltip>
+            <ReasoningControl className={clsx(styles.toggle, thinking && styles.selected)} />
+          </div>
+        )}
         <div className={styles.right}>
           <VoiceButton
             status={voice.status}

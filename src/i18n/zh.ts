@@ -1,5 +1,6 @@
 export const zh = {
-  modelControls: '模型与推理',
+  modelControls: '附件与模型',
+  reasoningGesture: '轻点开关，长按调节推理程度',
   modelChoice: '模型',
   effortChoice: '推理程度',
   effortOff: '关',
