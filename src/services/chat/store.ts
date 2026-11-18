@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { matchSkill } from './matchSkill.js'
-import { skillSystemPrompt } from './skillContext.js'
-import { availableSkill } from '../skills.js'
+import { previousSkillAnswer, skillSystemPrompt } from './skillContext.js'
+import { availableSkill, useSkills } from '../skills.js'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
 import type { ChatModel } from '../api/types.js'
@@ -170,7 +170,7 @@ const updateReply = (sessionId: string, reply: AssistantMessage) =>
     ),
   }))
 
-const persist = (sessionId: string) => {
+const persist = async (sessionId: string): Promise<void> => {
   const session = getSession(sessionId)
   if (session) {
     unsavedSessions.add(sessionId)
@@ -179,7 +179,7 @@ const persist = (sessionId: string) => {
     }
     const epoch = historyEpoch
     const files = pendingFiles.get(sessionId)
-    void db
+    return db
       .saveSession(session, files)
       .then(() => {
         if (epoch !== historyEpoch || !getSession(sessionId)) {
@@ -607,7 +607,8 @@ export const sendMessage = (targetSessionId: string | null) => {
     role: 'user',
     content: text,
     quote: prepared.quote,
-    mentionedSkill: getDraft(targetSessionId).skillRef,
+    mentionedSkill: prepared.skillRef,
+    mentionedSkillName: availableSkill(prepared.skillRef)?.name,
     files: files.map(({ id, serverId, name, size, isImage, mimeType }) => ({
       id,
       serverId,
@@ -689,6 +690,7 @@ export const editMessage = (sessionId: string, messageId: string, content: strin
     content: text,
     quote: previous.quote,
     mentionedSkill: previous.mentionedSkill,
+    mentionedSkillName: previous.mentionedSkillName,
     files: previous.files,
     createdAt: Date.now(),
   }
@@ -1006,6 +1008,21 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
   streamFlushes.set(sessionId, flush)
 
   try {
+    const receipt = !request.prefix && previousSkillAnswer(request.history, request.question, useSkills.getState().items)
+    if (receipt) {
+      reply = {
+        ...initial,
+        model: null,
+        localSkillReceipt: true,
+        skillResolved: true,
+        prefix: false,
+        thinking: false,
+        status: 'done',
+        stopReason: 'end_turn',
+        blocks: [{ type: 'text', text: receipt }],
+      }
+      return
+    }
     for (let attempt = 0; ; attempt += 1) {
       /** 附件补齐前出错属于上传失败，请求还没有发出 */
       let preparing = true
@@ -1040,7 +1057,8 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
           prepared.question,
           prepared.prefix,
           initial.thinking ?? false,
-          latestReminder
+          latestReminder,
+          prepared.question.mentionedSkill ? skill?.name : undefined
         )
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
@@ -1127,11 +1145,12 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
     streamFlushes.delete(sessionId)
     cancelAnimationFrame(frame)
     updateReply(sessionId, reply)
+    // Publish the completion state after the history transaction finishes (especially on Safari).
+    await persist(sessionId)
     set((state) => ({
       streaming: Object.fromEntries(
         Object.entries(state.streaming).filter(([id]) => id !== sessionId)
       ),
     }))
-    persist(sessionId)
   }
 }

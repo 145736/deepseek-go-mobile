@@ -168,7 +168,7 @@ export const prepareDraftMessage = (draft: Draft, tasks: Record<string, UploadTa
       blob: attachment.file,
     })
   }
-  return { text, files, quote: draft.quote }
+  return { text, files, quote: draft.quote, skillRef: draft.skillRef }
 }
 
 const releaseAttachment = (attachment: DraftAttachment, cancel: boolean) => {

@@ -65,7 +65,7 @@ export type ChatMessage = {
 }
 
 /** 用户的提问 */
-export type RequestFragment = { type: 'REQUEST'; content: string; quote?: string }
+export type RequestFragment = { type: 'REQUEST'; content: string; quote?: string; mentionedSkill?: string; mentionedSkillName?: string }
 
 /** 模型的回答，引用标记已剥除 */
 export type ResponseFragment = { type: 'RESPONSE'; content: string }

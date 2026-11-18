@@ -17,6 +17,7 @@ import {
 import { MessageFile } from './MessageFile.js'
 import { CopyButton } from './CopyButton.js'
 import styles from './UserMessage.module.css'
+import { useSkills } from '../../services/skills.js'
 
 export const UserMessage = memo(function UserMessage({
   sessionId,
@@ -43,6 +44,9 @@ export const UserMessage = memo(function UserMessage({
   const [draft, setDraft] = useState(message.content)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const isMobile = useIsMobile()
+  const mentionName = useSkills((library) => message.mentionedSkillName ??
+    (message.mentionedSkill && library.items.find((item) =>
+      item.id === message.mentionedSkill?.split('@')[0])?.name))
   const canSend = !busy && (draft.trim() !== '' || message.files.length > 0)
 
   useLayoutEffect(() => {
@@ -113,7 +117,12 @@ export const UserMessage = memo(function UserMessage({
       ) : (
         <>
           {message.quote && <details className="sent-quote"><summary>{t('quotedText')}</summary><p>{message.quote}</p></details>}
-          {message.content ? <div className={styles.bubble} data-quote-source>{message.content}</div> : null}
+          {(message.content || mentionName) && (
+            <div className={styles.bubble}>
+              {mentionName && <span className="sent-skill-mention">@{mentionName}</span>}
+              {message.content && <span data-quote-source>{message.content}</span>}
+            </div>
+          )}
           <div className={styles.bottom}>
             <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
               {message.content ? <CopyButton text={message.content} /> : null}

@@ -37,6 +37,7 @@ export type UserMessage = MessageBranch & {
   id: string
   role: 'user'
   mentionedSkill?: string
+  mentionedSkillName?: string
   quote?: string
   content: string
   files: FileAttachment[]
@@ -75,6 +76,7 @@ export type ReplyBlock = ThinkingPart | TextPart | ServerToolBlock
 export type ReplyStatus = 'pending' | 'streaming' | 'done' | 'stopped' | 'error'
 
 export type AssistantMessage = MessageBranch & {
+  localSkillReceipt?: boolean
   continuedWithoutSkill?: boolean
   skillMode?: 'auto' | 'mentioned'
   skillMatchSkipped?: boolean

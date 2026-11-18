@@ -43,14 +43,19 @@ const toFile = (file: FileEntry): FileAttachment => ({
   mimeType: '',
 })
 
-const toUser = (message: ChatMessage): UserMessage => ({
-  id: String(message.id),
-  role: 'user',
-  quote: message.fragments.flatMap(item => item.type === 'REQUEST' && item.quote ? [item.quote] : [])[0],
-  createdAt: time(message.inserted_at),
-  content: message.fragments.map((item) => (item.type === 'REQUEST' ? item.content : '')).join(''),
-  files: message.fragments.flatMap((item) => (item.type === 'FILE' ? item.files.map(toFile) : [])),
-})
+const toUser = (message: ChatMessage): UserMessage => {
+  const requests = message.fragments.filter(item => item.type === 'REQUEST')
+  return {
+    id: String(message.id),
+    role: 'user',
+    mentionedSkill: requests.find(item => item.mentionedSkill)?.mentionedSkill,
+    mentionedSkillName: requests.find(item => item.mentionedSkillName)?.mentionedSkillName,
+    quote: requests.find(item => item.quote)?.quote,
+    createdAt: time(message.inserted_at),
+    content: requests.map(item => item.content).join(''),
+    files: message.fragments.flatMap((item) => (item.type === 'FILE' ? item.files.map(toFile) : [])),
+  }
+}
 
 /** 归档不带原调用 ID，以消息和片段位置生成稳定 ID，调用与结果共用。 */
 const toolBlocks = (

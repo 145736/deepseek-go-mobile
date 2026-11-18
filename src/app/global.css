@@ -134,3 +134,10 @@ body[data-ds-dark-theme] {
 .skill-mention-chip { display: inline-flex; align-self: flex-start; align-items: center; gap: 2px; margin: 5px 10px 0; padding-inline-start: 10px; border-radius: 10px; background: var(--wash); color: var(--accent-ink); font-size: 13px; max-width: calc(100% - 20px); }
 .skill-mention-chip span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skill-mention-chip button { flex-shrink: 0; min-width: 44px; min-height: 44px; background: transparent; border: 0; color: inherit; font-size: 18px; }
+.sent-skill-mention {
+  display: block;
+  color: var(--accent-ink);
+  overflow-wrap: anywhere;
+  font-size: 0.875em;
+  font-weight: 600;
+}
