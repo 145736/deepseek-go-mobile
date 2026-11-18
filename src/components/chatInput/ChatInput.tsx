@@ -190,7 +190,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           <IconButton
             size="m"
             tone="primary"
-            icon={<span className={styles.plus} aria-hidden="true">+</span>}
+            icon={<span className={styles.plus} aria-hidden="true" />}
             tooltip={t('uploadFile')}
             disabled={importingHistory}
             onClick={() => ensureApiKey() && fileInputRef.current?.click()}
