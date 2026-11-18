@@ -2,7 +2,6 @@ import clsx from 'clsx'
 import { memo, useCallback, useEffect, useRef } from 'react'
 import {
   IconGlobeLanguageOutline14,
-  IconPaperclipOutline16,
   IconSendOutline16,
   IconStopFill16,
   IconThinkOutline14,
@@ -188,6 +187,25 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       <div className={styles.functionRow}>
         {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
         <div className={styles.toggles}>
+          <IconButton
+            size="m"
+            tone="primary"
+            icon={<span className={styles.plus} aria-hidden="true">+</span>}
+            tooltip={t('uploadFile')}
+            disabled={importingHistory}
+            onClick={() => ensureApiKey() && fileInputRef.current?.click()}
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            hidden
+            accept={ACCEPT}
+            onChange={(event) => {
+              acceptFiles(Array.from(event.target.files ?? []))
+              event.target.value = ''
+            }}
+          />
           <Tooltip content={t('deactivatedThinkTooltip')}>
             <button
               type="button"
@@ -223,25 +241,6 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               ) {
                 void voice.toggle()
               }
-            }}
-          />
-          <IconButton
-            size="m"
-            tone="primary"
-            icon={<IconPaperclipOutline16 />}
-            tooltip={t('uploadFile')}
-            disabled={importingHistory}
-            onClick={() => ensureApiKey() && fileInputRef.current?.click()}
-          />
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            hidden
-            accept={ACCEPT}
-            onChange={(event) => {
-              acceptFiles(Array.from(event.target.files ?? []))
-              event.target.value = ''
             }}
           />
           {streaming && sessionId ? (

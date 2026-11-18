@@ -25,6 +25,7 @@
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior-y: contain;
+    padding-top: env(safe-area-inset-top);
     scrollbar-color: var(--scroll-color) transparent;
   }
 }
