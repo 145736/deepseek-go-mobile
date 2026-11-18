@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useTranslate, isTranslationKey } from '../../i18n/index.js'
-import { setConversationSkill, useChatStore } from '../../services/chat/store.js'
+import { useChatStore } from '../../services/chat/store.js'
 import {
   availableSkill,
   defaultSkill,
@@ -8,13 +8,13 @@ import {
   installSkill,
   readTextSkill,
   removeSkill,
-  setDefaultSkill,
   deleteRegistration,
   saveRegistration,
   useSkills,
   type TextSkill,
   type Registration,
 } from '../../services/skills.js'
+import { useDrafts, setDraftSkill } from '../../services/chat/drafts.js'
 import { createId } from '../../utils/id.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
@@ -23,23 +23,21 @@ export function ExtensionsDialog() {
   const t = useTranslate()
   const library = useSkills()
   const id = useChatStore((s) => s.activeId)
-  const ref = useChatStore((s) =>
-    s.activeId ? s.sessionCache[s.activeId]?.skillId : (s.newChatSkillId ?? library.defaultRef)
-  )
+  const ref = useDrafts(s=>s.drafts.get(id)?.skillRef)
   if (!library.open) {
     return null
   }
   const close = () => useSkills.setState({ open: false })
   const choose = (value: string) => {
-    setConversationSkill(id, value)
+    setDraftSkill(id, value || undefined)
     close()
   }
   const current = availableSkill(ref)
   return (
-    <Modal title={t('chatSkills')} closable onClose={close} mainClassName="library-scroll">
+    <Modal title={t('messageSkill')} closable onClose={close} mainClassName="library-scroll">
       <div className="extensions">
         <button className="library-row" onClick={() => choose('')} aria-pressed={!current}>
-          {t('noSkill')}
+          {t('autoSkill')}
           <span>{current ? '' : '✓'}</span>
         </button>
         {library.items
@@ -147,9 +145,7 @@ export function ExtensionLibrary() {
                   {t(
                     !library.choices[s.id]
                       ? 'disabledState'
-                      : library.choices[s.id] === library.defaultRef
-                        ? 'defaultSkill'
-                        : 'enabledState'
+                      : 'enabledState'
                   )}{' '}
                   ›
                 </small>
@@ -249,16 +245,7 @@ export function ExtensionLibrary() {
                   onChange={(e) => act(() => enableSkill(item, e.target.checked))}
                 />
               </label>
-              <label className="library-row">
-                {t('defaultSkill')}
-                <input
-                  type="checkbox"
-                  role="switch"
-                  disabled={!ref}
-                  checked={!!ref && ref === library.defaultRef}
-                  onChange={(e) => act(() => setDefaultSkill(e.target.checked ? ref : ''))}
-                />
-              </label>
+              <small>{t('autoSkillHint')}</small>
               <details>
                 <summary>{t('skillInstructions')}</summary>
                 <pre>{item.body}</pre>

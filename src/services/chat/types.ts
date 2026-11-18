@@ -36,6 +36,7 @@ type MessageBranch = {
 export type UserMessage = MessageBranch & {
   id: string
   role: 'user'
+  mentionedSkill?: string
   quote?: string
   content: string
   files: FileAttachment[]
@@ -75,6 +76,9 @@ export type ReplyStatus = 'pending' | 'streaming' | 'done' | 'stopped' | 'error'
 
 export type AssistantMessage = MessageBranch & {
   continuedWithoutSkill?: boolean
+  skillMode?: 'auto' | 'mentioned'
+  skillMatchSkipped?: boolean
+  skillResolved?: boolean
   skillRef?: string
   skill?: import('../skills.js').TextSkill
   id: string

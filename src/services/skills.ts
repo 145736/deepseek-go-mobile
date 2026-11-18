@@ -46,7 +46,6 @@ export type Registration = {
 }
 const entryPrefix = 'chat-demo:registration:'
 const switchPrefix = 'chat-demo:skill-switch:'
-const defaultKey = 'chat-demo:default-skill'
 
 function loadLibrary() {
   const items = loadSkills()
@@ -55,12 +54,10 @@ function loadLibrary() {
   for (const item of items) {
     choices[item.id] = item.id
   }
-  let defaultRef = ''
   try {
     for (const item of items) {
       choices[item.id] = localStorage.getItem(switchPrefix + item.id) ?? item.id
     }
-    defaultRef = localStorage.getItem(defaultKey) ?? ''
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
       if (!key?.startsWith(entryPrefix)) {
@@ -82,7 +79,7 @@ function loadLibrary() {
   } catch {
     /* Built-in skills work while browser storage is unavailable. */
   }
-  return { items, choices, registrations, defaultRef }
+  return { items, choices, registrations }
 }
 export const useSkills = create(() => ({ ...loadLibrary(), open: false }))
 export const openExtensions = () => useSkills.setState({ open: true })
@@ -93,8 +90,7 @@ if (typeof window !== 'undefined') {
       !event.key ||
       event.key.startsWith(prefix) ||
       event.key.startsWith(entryPrefix) ||
-      event.key.startsWith(switchPrefix) ||
-      event.key === defaultKey
+      event.key.startsWith(switchPrefix)
     ) {
       refresh()
     }
@@ -111,10 +107,6 @@ export function availableSkill(ref?: string) {
 export function enableSkill(item: TextSkill, enabled: boolean) {
   // A fresh reference prevents previously disabled selections from reviving.
   localStorage.setItem(switchPrefix + item.id, enabled ? item.id + '@' + createId() : '')
-  refresh()
-}
-export function setDefaultSkill(ref: string) {
-  localStorage.setItem(defaultKey, availableSkill(ref) ? ref : '')
   refresh()
 }
 export function saveRegistration(entry: Registration) {

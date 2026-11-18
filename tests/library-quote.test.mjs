@@ -12,14 +12,13 @@ test('a quoted selection stays within the user turn and survives history replay'
   assert.deepEqual(toRequestMessages([], next)[0], {role:'user',content:'继续'})
 })
 
-test('disabling and enabling again invalidates previous session and default selections', async () => {
+test('disabling and enabling again invalidates previous selections', async () => {
   const values = new Map()
   const storage = {get length(){return values.size},key:i=>Array.from(values.keys())[i],getItem:k=>values.get(k)??null,setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)}
   Object.defineProperty(globalThis,'localStorage',{configurable:true,value:storage})
-  const { defaultSkill, useSkills, availableSkill, enableSkill, setDefaultSkill } = await import('../src/services/skills.ts')
+  const { defaultSkill, useSkills, availableSkill, enableSkill } = await import('../src/services/skills.ts')
   assert.equal(availableSkill(defaultSkill.id),defaultSkill)
-  setDefaultSkill(defaultSkill.id)
-  const original = useSkills.getState().defaultRef
+  const original = defaultSkill.id
   enableSkill(defaultSkill,false)
   assert.equal(availableSkill(original),undefined)
   enableSkill(defaultSkill,true)

@@ -1,5 +1,6 @@
 import { SelectionQuote } from './SelectionQuote.js'
-import { setDraftQuote } from '../../services/chat/drafts.js'
+import { useSkillMention } from './useSkillMention.js'
+import { useSkills } from '../../services/skills.js'
 import clsx from 'clsx'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { IconGlobeLanguageOutline14, IconSendOutline16, IconStopFill16 } from '../base/icons.js'
@@ -14,6 +15,8 @@ import {
   removeDraftAttachment,
   retryDraftAttachment,
   setDraftText,
+  setDraftQuote,
+  setDraftSkill,
   useDrafts,
 } from '../../services/chat/drafts.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
@@ -53,6 +56,15 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const search = useSettings((state) => state.model === 'deepseek-flash' && state.search)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const mention = useSkillMention(sessionId, text, textareaRef)
+  const chosen = useSkills((library) =>
+    draft.skillRef ? library.items.find((item) => library.choices[item.id] === draft.skillRef) : undefined
+  )
+  useEffect(() => {
+    if (draft.skillRef && !chosen) {
+      setDraftSkill(sessionId)
+    }
+  }, [chosen, draft.skillRef, sessionId])
   // Safari can dismiss its keyboard while leaving the textarea focused.
   useEffect(() => {
     const viewport = window.visualViewport
@@ -142,7 +154,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
 
-  const compact = !draft.quote && !editing && !text && !attachments.length && !streaming && voice.status === 'idle'
+  const compact = !chosen && !draft.quote && !editing && !text && !attachments.length && !streaming && voice.status === 'idle'
 
   const send = () => {
     if (
@@ -188,6 +200,15 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         }
       }}
     >
+      {mention.menu}
+      {chosen && (
+        <div className="skill-mention-chip">
+          <span>@{chosen.name}</span>
+          <button type="button" aria-label={t('removeMention')} onClick={() => setDraftSkill(sessionId)}>
+            ×
+          </button>
+        </div>
+      )}
       {sessionId && <SelectionQuote key={sessionId} sessionId={sessionId} input={textareaRef} />}
       {sessionId && draft.quote && <div className="draft-quote">
         <span aria-hidden="true">❝</span><span>{draft.quote}</span>
@@ -206,7 +227,15 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
           autoFocus={!isMobile}
           disabled={importingHistory}
           value={text}
-          onChange={(event) => setText(event.target.value)}
+          aria-autocomplete="list"
+          aria-controls={mention.listId}
+          aria-activedescendant={mention.activeId}
+          onSelect={(event) => mention.update(event.currentTarget)}
+          onBlur={mention.close}
+          onChange={(event) => {
+            setText(event.target.value)
+            mention.update(event.currentTarget)
+          }}
           onMouseDown={(event) => {
             // 首次点击时手动聚焦，避免 Safari 把整个页面滚到输入框位置。
             if (isMobile && event.button === 0 && document.activeElement !== event.currentTarget) {
@@ -215,11 +244,15 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
             }
           }}
           onKeyDown={(event) => {
+            if (mention.keyDown(event)) {
+              return
+            }
             if (
               !isMobile &&
               event.key === 'Enter' &&
               !event.shiftKey &&
-              !event.nativeEvent.isComposing
+              !event.nativeEvent.isComposing &&
+              event.nativeEvent.keyCode !== 229
             ) {
               event.preventDefault()
               send()

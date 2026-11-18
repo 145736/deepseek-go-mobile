@@ -19,19 +19,20 @@ export type DraftAttachment = {
   previewUrl: string | null
 }
 
-type Draft = { text: string; quote?: string; attachments: DraftAttachment[] }
+type Draft = { text: string; quote?: string; skillRef?: string; attachments: DraftAttachment[] }
 
 export const EMPTY_DRAFT: Draft = { text: '', attachments: [] }
 
 // Persist text per conversation. Attachment blobs and upload tasks stay in memory.
 const textKey = 'chat-demo:draft-text:'
 const quoteKey = 'chat-demo:draft-quote:'
+const mentionKey = 'chat-demo:draft-mention:'
 function restoreText() {
   const drafts = new Map<string | null, Draft>()
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
-      const prefix = key?.startsWith(quoteKey) ? quoteKey : textKey
+      const prefix = key?.startsWith(mentionKey) ? mentionKey : key?.startsWith(quoteKey) ? quoteKey : textKey
       if (!key?.startsWith(prefix)) {
         continue
       }
@@ -40,7 +41,7 @@ function restoreText() {
       if (text) {
         drafts.set(id || null, {
           ...(drafts.get(id || null) ?? EMPTY_DRAFT),
-          [prefix === quoteKey ? 'quote' : 'text']: text,
+          [prefix === mentionKey ? 'skillRef' : prefix === quoteKey ? 'quote' : 'text']: text,
         })
       }
     }
@@ -77,14 +78,18 @@ const updateDraft = (sessionId: string | null, update: (draft: Draft) => Draft) 
     if (draft.quote !== state.drafts.get(sessionId)?.quote) {
       saveText(sessionId, draft.quote ?? '', quoteKey)
     }
+    if (draft.skillRef !== state.drafts.get(sessionId)?.skillRef) {saveText(sessionId, draft.skillRef ?? '', mentionKey)}
     const drafts = new Map(state.drafts)
-    if (draft.text || draft.quote || draft.attachments.length > 0) {
+    if (draft.text || draft.quote || draft.skillRef || draft.attachments.length > 0) {
       drafts.set(sessionId, draft)
     } else {
       drafts.delete(sessionId)
     }
     return { drafts }
   })
+
+export const setDraftSkill = (id: string | null, skillRef?: string) =>
+  updateDraft(id, draft => ({...draft, skillRef}))
 
 export const setDraftQuote = (id: string, quote?: string) =>
   updateDraft(id, (draft) => ({ ...draft, quote }))
@@ -203,6 +208,7 @@ export const clearAllDrafts = () => {
   for (const [id, draft] of useDrafts.getState().drafts) {
     saveText(id, '')
     saveText(id, '', quoteKey)
+    saveText(id, '', mentionKey)
     draft.attachments.forEach((attachment) => releaseAttachment(attachment, true))
   }
   useDrafts.setState({ drafts: new Map() })

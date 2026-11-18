@@ -1,5 +1,6 @@
 import { create } from 'zustand'
-import { availableSkill, useSkills } from '../skills.js'
+import { matchSkill } from './matchSkill.js'
+import { availableSkill } from '../skills.js'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
 import type { ChatModel } from '../api/types.js'
@@ -51,7 +52,6 @@ const FILE_RETRY_BASE_DELAY = 1000
 const titleRequests = new Set<AbortController>()
 
 type ChatState = {
-  newChatSkillId?: string
   ready: boolean
   initError: boolean
   /** 历史导入或全部删除期间锁定交互，提交成功前仍展示原有记录。 */
@@ -67,17 +67,7 @@ type ChatState = {
   streaming: Record<string, AbortController>
 }
 
-const draftSkillKey = 'chat-demo:draft-skill'
-function restoreDraftSkill() {
-  try {
-    return sessionStorage.getItem(draftSkillKey) ?? undefined
-  } catch {
-    return undefined
-  }
-}
-
 export const useChatStore = create<ChatState>(() => ({
-  newChatSkillId: restoreDraftSkill(),
   ready: false,
   initError: false,
   importingHistory: false,
@@ -88,19 +78,6 @@ export const useChatStore = create<ChatState>(() => ({
   activeId: null,
   streaming: {},
 }))
-
-useChatStore.subscribe((next, prev) => {
-  if (next.newChatSkillId === prev.newChatSkillId) {
-    return
-  }
-  try {
-    if (next.newChatSkillId !== undefined) {
-      sessionStorage.setItem(draftSkillKey, next.newChatSkillId)
-    } else {
-      sessionStorage.removeItem(draftSkillKey)
-    }
-  } catch { /* The current tab can still use its in-memory selection. */ }
-})
 
 const { getState: get, setState: set } = useChatStore
 
@@ -269,20 +246,7 @@ export const bindChatPersistence = () => {
 }
 
 /** 按当前开关创建回复：深度思考对应 thinking，智能搜索控制 deepseek_web_search。 */
-export function setConversationSkill(sessionId: string | null, skillId?: string) {
-  if (get().importingHistory) {
-    return
-  }
-  if (sessionId === null) {
-    set({ newChatSkillId: skillId ?? '' })
-  } else if (getSession(sessionId)) {
-    updateSession(sessionId, (session) => ({ ...session, skillId }))
-    persist(sessionId)
-  }
-}
-
-const createReply = (sessionId: string): AssistantMessage => {
-  const skillId = getSession(sessionId)?.skillId
+const createReply = (skillId?: string): AssistantMessage => {
   const skill = availableSkill(skillId)
   const { model, effort, thinking, search } = useSettings.getState()
   return {
@@ -294,6 +258,7 @@ const createReply = (sessionId: string): AssistantMessage => {
     thinking,
     skill,
     skillRef: skillId,
+    skillMode: skillId ? 'mentioned' : 'auto',
     search: model === MODEL && search,
     prefix: true,
     status: 'pending',
@@ -453,7 +418,6 @@ export const replaceHistory = async (write: () => Promise<void>): Promise<number
       ready: true,
       initError: false,
       sessions: sortSessions(summaries),
-      newChatSkillId: undefined,
       sessionCache: {},
       sessionLoadErrors: {},
       sessionSaveErrors: {},
@@ -624,7 +588,6 @@ export const sendMessage = (targetSessionId: string | null) => {
       createdAt: now,
       updatedAt: now,
       messages: [],
-      skillId: get().newChatSkillId ?? useSkills.getState().defaultRef,
       rootMessageId: null,
     }
     sessionId = session.id
@@ -633,7 +596,6 @@ export const sendMessage = (targetSessionId: string | null) => {
       sessions: [toSessionSummary(session), ...state.sessions],
       sessionCache: { ...state.sessionCache, [session.id]: session },
       activeId: session.id,
-      newChatSkillId: undefined,
     }))
   }
   const current = getSession(sessionId)
@@ -646,6 +608,7 @@ export const sendMessage = (targetSessionId: string | null) => {
     role: 'user',
     content: text,
     quote: prepared.quote,
+    mentionedSkill: getDraft(targetSessionId).skillRef,
     files: files.map(({ id, serverId, name, size, isImage, mimeType }) => ({
       id,
       serverId,
@@ -656,7 +619,7 @@ export const sendMessage = (targetSessionId: string | null) => {
     })),
     createdAt: now,
   }
-  const reply = createReply(sessionId)
+  const reply = createReply(question.mentionedSkill)
   updateSession(sessionId, (session) => ({
     ...appendBranch(session, history.at(-1)?.id ?? null, [question, reply]),
     updatedAt: now,
@@ -693,7 +656,7 @@ export const regenerateReply = (sessionId: string, messageId?: string) => {
   if (!allowNewReply(history, question.content, question.files.length)) {
     return
   }
-  const reply = createReply(sessionId)
+  const reply = createReply(question.mentionedSkill)
   updateSession(sessionId, (s) => ({
     ...appendBranch(s, question.id, [reply]),
     updatedAt: Date.now(),
@@ -726,10 +689,11 @@ export const editMessage = (sessionId: string, messageId: string, content: strin
     role: 'user',
     content: text,
     quote: previous.quote,
+    mentionedSkill: previous.mentionedSkill,
     files: previous.files,
     createdAt: Date.now(),
   }
-  const reply = createReply(sessionId)
+  const reply = createReply(question.mentionedSkill)
   updateSession(sessionId, (s) => ({
     ...appendBranch(s, path[index - 1]?.id ?? null, [question, reply]),
     updatedAt: Date.now(),
@@ -1031,6 +995,8 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
     titleRequests.add(controller)
   }
   set((state) => ({ streaming: { ...state.streaming, [sessionId]: controller } }))
+  let chosenRef = initial.skillRef ?? initial.skill?.id
+  let decide = !request.prefix && initial.skillMode === 'auto' && !initial.skillResolved
   let reply = initial
   let frame = 0
   const flush = () => {
@@ -1052,8 +1018,19 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         const latestReminder = prepared.prefix
           ? prepared.prefix.latestReminder
           : createLatestReminder(useSettings.getState())
-        const skill = availableSkill(initial.skillRef ?? initial.skill?.id) ? initial.skill : undefined
-        reply = { ...reply, latestReminder,
+        if (decide) {
+          const decision = await matchSkill(useSettings.getState().apiKey ?? '', prepared.question, controller.signal)
+          decide = false
+          chosenRef = decision.ref
+          reply = { ...reply, skillMatchSkipped: decision.skipped }
+        }
+        controller.signal.throwIfAborted()
+        const skill = availableSkill(chosenRef)
+        reply = {
+          ...reply,
+          latestReminder,
+          skillRef: chosenRef,
+          skillResolved: true,
           skill: prepared.prefix ? initial.skill : skill,
           continuedWithoutSkill: prepared.prefix && initial.skill && !skill ? true : initial.continuedWithoutSkill,
         }

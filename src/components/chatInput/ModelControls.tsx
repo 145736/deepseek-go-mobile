@@ -130,7 +130,7 @@ export function ModelControls({
                     openExtensions()
                   }}
                 >
-                  {t('chatSkills')}
+                  {t('messageSkill')}
                 </button>
                 <button type="button" onClick={() => setPage('models')}>
                   <IconThinkOutline16 />

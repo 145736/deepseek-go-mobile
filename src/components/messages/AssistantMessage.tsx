@@ -151,9 +151,10 @@ export const AssistantMessage = memo(function AssistantMessage({
               : ''}
           </p>
           {message.continuedWithoutSkill && <p>{t('continuedWithoutSkill')}</p>}
+          {message.skillMatchSkipped && <p>{t('matchSkipped')}</p>}
           {message.skill && (
             <p>
-              {t('replySkill')} · {message.skill.name}
+              {t(message.skillMode === 'auto' ? 'matchedSkill' : message.skillMode === 'mentioned' ? 'mentionedSkill' : 'replySkill')} · {message.skill.name}
               {'\n'}
               {message.skill.body}
             </p>
