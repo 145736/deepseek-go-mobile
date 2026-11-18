@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { parseDocument } from 'yaml'
+import { officialDocumentSkill } from './builtins/officialDocument.js'
 import { createId } from '../utils/id.js'
 
 export type TextSkill = { id: string; name: string; description: string; body: string }
@@ -11,8 +12,11 @@ export const defaultSkill: TextSkill = {
   body: '根据提供的会议原文整理纪要。概括结论，区分已确认与待确认事项。逐项列出负责人、交付物和日期，原文未明确的字段标注“待确认”。给重要结论附上对应原文。',
 }
 
+const builtInSkills = [defaultSkill, officialDocumentSkill]
+export const isBuiltInSkill = (id: string) => builtInSkills.some((item) => item.id === id)
+
 function loadSkills(): TextSkill[] {
-  const skills = [defaultSkill]
+  const skills = [...builtInSkills]
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
@@ -160,7 +164,7 @@ export function installSkill(item: TextSkill) {
 }
 
 export function removeSkill(item: TextSkill) {
-  if (item.id === defaultSkill.id) {
+  if (isBuiltInSkill(item.id)) {
     return
   }
   localStorage.removeItem(prefix + item.id)

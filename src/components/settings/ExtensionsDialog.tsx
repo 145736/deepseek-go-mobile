@@ -3,7 +3,7 @@ import { useTranslate, isTranslationKey } from '../../i18n/index.js'
 import { useChatStore } from '../../services/chat/store.js'
 import {
   availableSkill,
-  defaultSkill,
+  isBuiltInSkill,
   enableSkill,
   installSkill,
   readTextSkill,
@@ -303,7 +303,7 @@ export function ExtensionLibrary() {
       )}
       {detail &&
         ((detail.kind === 'entry' && !detail.fresh) ||
-          (detail.kind === 'skill' && !detail.importing && item?.id !== defaultSkill.id)) && (
+          (detail.kind === 'skill' && !detail.importing && !!item && !isBuiltInSkill(item.id))) && (
           <Button
             variant="dangerOutlined"
             onClick={() => {
