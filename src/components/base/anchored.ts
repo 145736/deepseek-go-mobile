@@ -129,8 +129,11 @@ export const useAnchoredPosition = <T extends HTMLElement, F extends HTMLElement
       return
     }
     const rect = anchor.getBoundingClientRect()
-    const spaceAbove = rect.top - offset - VIEWPORT_PADDING
-    const spaceBelow = window.innerHeight - rect.bottom - offset - VIEWPORT_PADDING
+    const viewport = window.visualViewport
+    const viewportTop = viewport?.offsetTop ?? 0
+    const viewportBottom = viewportTop + (viewport?.height ?? window.innerHeight)
+    const spaceAbove = rect.top - viewportTop - offset - VIEWPORT_PADDING
+    const spaceBelow = viewportBottom - rect.bottom - offset - VIEWPORT_PADDING
 
     if (maxHeight === undefined) {
       const { width, height } = floating.getBoundingClientRect()
@@ -149,9 +152,11 @@ export const useAnchoredPosition = <T extends HTMLElement, F extends HTMLElement
     applyPosition({
       top:
         resolved === 'top'
-          ? Math.max(VIEWPORT_PADDING, rect.top - offset - height)
+          ? Math.max(viewportTop + VIEWPORT_PADDING, rect.top - offset - height)
           : rect.bottom + offset,
-      right: Math.max(VIEWPORT_PADDING, window.innerWidth - rect.right),
+      ...(align === 'end'
+        ? { right: Math.max(VIEWPORT_PADDING, window.innerWidth - rect.right) }
+        : { left: alignLeft(rect, floating.offsetWidth, align, alignOffset) }),
       maxHeight: height,
     })
   }, [align, alignOffset, applyPosition, floatingRef, getAnchor, maxHeight, minSpace, offset, side])
@@ -181,9 +186,13 @@ export const useAnchoredPosition = <T extends HTMLElement, F extends HTMLElement
     if (anchor) {
       observer.observe(anchor)
     }
+    window.visualViewport?.addEventListener('resize', update)
+    window.visualViewport?.addEventListener('scroll', update)
     window.addEventListener('scroll', update, { capture: true, passive: true })
     window.addEventListener('resize', update, { passive: true })
     return () => {
+      window.visualViewport?.removeEventListener('resize', update)
+      window.visualViewport?.removeEventListener('scroll', update)
       observer.disconnect()
       window.removeEventListener('scroll', update, { capture: true })
       window.removeEventListener('resize', update)

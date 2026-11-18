@@ -98,7 +98,7 @@ const SettingsContent = () => {
           {section === 'connection' ? (
             <>
               <div className={styles.connectionInfo}>
-                <strong>DeepSeek Flash</strong>
+                <strong>DeepSeek</strong>
                 <p>{t('connectionDescription')}</p>
               </div>
               <ApiKeyField editor={apiKeyEditor} />

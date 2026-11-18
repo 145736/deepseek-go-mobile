@@ -1,6 +1,16 @@
 import type { zh } from './zh.js'
 
 export const en = {
+  modelControls: 'Model and reasoning',
+  modelChoice: 'Model',
+  effortChoice: 'Reasoning effort',
+  effortOff: 'Off',
+  effortLow: 'Low',
+  effortHigh: 'High',
+  effortMax: 'Max',
+  addMedia: 'Add photos or files',
+  switchFlashPrompt: 'Pro is for text reasoning. Search, URL reading, attachments and tool history require Flash. Switch to Flash to continue?',
+  switchFlash: 'Switch to Flash',
   connectionSettings: 'Connection',
   homeTitle: 'Give your ideas room.',
   homeSubtitle: 'Write, explore, and make sense of more.',

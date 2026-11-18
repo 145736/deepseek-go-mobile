@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { ChatModel, ThinkingEffort } from './api/types.js'
 import type { TtsVoice } from './api/speech.js'
 import { normalizeLocation, type UserLocation } from './location.js'
 
@@ -14,6 +15,8 @@ type Settings = {
   themePreference: ThemePreference
   location: UserLocation | null
   ttsVoice: TtsVoice
+  model: ChatModel
+  effort: ThinkingEffort
   thinking: boolean
   search: boolean
   siderCollapsed: boolean
@@ -25,6 +28,8 @@ const KEYS = {
   location: 'chat-demo:location',
   themePreference: 'chat-demo:theme-preference',
   ttsVoice: 'chat-demo:tts-voice',
+  model: 'chat-demo:model',
+  effort: 'chat-demo:effort',
   thinking: 'chat-demo:thinking',
   search: 'chat-demo:search',
   siderCollapsed: 'chat-demo:sider-collapsed',
@@ -87,12 +92,15 @@ const initialThemePreference = (): ThemePreference => {
 /** 未保存过时使用服务端默认音色 stella（海星） */
 const initialTtsVoice = (): TtsVoice => (read(KEYS.ttsVoice) === 'tide' ? 'tide' : 'stella')
 
+const savedEffort = read(KEYS.effort)
 export const useSettings = create<Settings>(() => ({
   apiKey: read(KEYS.apiKey),
   locale: initialLocale(),
   location: initialLocation(),
   themePreference: initialThemePreference(),
   ttsVoice: initialTtsVoice(),
+  model: read(KEYS.model) === 'deepseek-v4-pro' ? 'deepseek-v4-pro' : 'deepseek-flash',
+  effort: savedEffort === 'low' || savedEffort === 'max' ? savedEffort : 'high',
   thinking: read(KEYS.thinking) === 'true',
   search: read(KEYS.search) === 'true',
   siderCollapsed: read(KEYS.siderCollapsed) === 'true',
@@ -129,6 +137,21 @@ export const setApiKey = (apiKey: string | null) => {
   useSettings.setState({ apiKey })
 }
 
+export const setModel = (model: ChatModel) => {
+  write(KEYS.model, model)
+  useSettings.setState({ model })
+}
+
+export const setReasoningLevel = (level: ThinkingEffort | 'off') => {
+  if (level === 'off') {
+    setThinking(false)
+    return
+  }
+  write(KEYS.effort, level)
+  write(KEYS.thinking, 'true')
+  useSettings.setState({ effort: level, thinking: true })
+}
+
 export const setThinking = (thinking: boolean) => {
   write(KEYS.thinking, String(thinking))
   useSettings.setState({ thinking })
@@ -142,4 +165,16 @@ export const setSearch = (search: boolean) => {
 export const setSiderCollapsed = (siderCollapsed: boolean) => {
   write(KEYS.siderCollapsed, String(siderCollapsed))
   useSettings.setState({ siderCollapsed })
+}
+
+export const useFlashPrompt = create<{ pending: { resume?: () => void } | null }>(() => ({
+  pending: null,
+}))
+
+export const requireFlash = (resume?: () => void) => {
+  if (useSettings.getState().model === 'deepseek-flash') {
+    return true
+  }
+  useFlashPrompt.setState({ pending: { resume } })
+  return false
 }

@@ -6,7 +6,7 @@ import {
   IconStopFill16,
   IconThinkOutline14,
 } from '../base/icons.js'
-import { setSearch, setThinking, useSettings } from '../../services/settings.js'
+import { requireFlash, setSearch, setThinking, useSettings } from '../../services/settings.js'
 import { useIsMobile } from '../../app/viewport.js'
 import { sendMessage, stopReply, useChatStore } from '../../services/chat/store.js'
 import {
@@ -20,7 +20,7 @@ import {
   useDrafts,
 } from '../../services/chat/drafts.js'
 import { stopReadAloud } from '../../services/speech/readAloud.js'
-import { IconButton } from '../base/IconButton.js'
+import { ModelControls } from './ModelControls.js'
 import { Tooltip } from '../base/Tooltip.js'
 import { ensureApiKey } from '../settings/settingsDialogState.js'
 import { DragMask, useFileDrop } from './DragMask.js'
@@ -51,11 +51,16 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   const thinking = useSettings((state) => state.thinking)
   const importingHistory = useChatStore((state) => state.importingHistory)
   const isMobile = useIsMobile()
-  const search = useSettings((state) => state.search)
+  const search = useSettings((state) => state.model === 'deepseek-flash' && state.search)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const acceptFiles = (files: File[]) => {
-    if (files.length === 0 || useChatStore.getState().importingHistory || !ensureApiKey()) {
+    if (
+      files.length === 0 ||
+      useChatStore.getState().importingHistory ||
+      !requireFlash(() => acceptFiles(files)) ||
+      !ensureApiKey()
+    ) {
       return
     }
     const error = addDraftFiles(sessionId, files, useSettings.getState().apiKey ?? '')
@@ -187,13 +192,19 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       <div className={styles.functionRow}>
         {/* 深度思考 / 智能搜索开关，tooltip 在按钮上方 */}
         <div className={styles.toggles}>
-          <IconButton
-            size="m"
-            tone="primary"
-            icon={<span className={styles.plus} aria-hidden="true" />}
-            tooltip={t('uploadFile')}
+          <ModelControls
             disabled={importingHistory}
-            onClick={() => ensureApiKey() && fileInputRef.current?.click()}
+            plusClass={styles.plus}
+            onUpload={() => {
+              const pick = () => {
+                if (ensureApiKey()) {
+                  fileInputRef.current?.click()
+                }
+              }
+              if (requireFlash(pick)) {
+                pick()
+              }
+            }}
           />
           <input
             ref={fileInputRef}
@@ -223,7 +234,11 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
               className={clsx(styles.toggle, search && styles.selected)}
               aria-label={t('search')}
               aria-pressed={search}
-              onClick={() => setSearch(!search)}
+              onClick={() => {
+                if (requireFlash(() => setSearch(true))) {
+                  setSearch(!search)
+                }
+              }}
             >
               <IconGlobeLanguageOutline14 />
             </button>

@@ -1,10 +1,10 @@
 import { create } from 'zustand'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
-import type { ChatModel, CreateMessageRequest } from '../api/types.js'
+import type { ChatModel } from '../api/types.js'
 import { extractFileIds, getFileErrorCode, isRetryableApiError } from '../api/errors.js'
 import { cancelUpload, describeUploadError, uploadAttachment, useUploads } from '../attachments.js'
-import { useSettings } from '../settings.js'
+import { requireFlash, useSettings } from '../settings.js'
 import { appendBranch, getVisibleMessages, normalizeSession, selectVersion } from './branches.js'
 import * as db from './db.js'
 import {
@@ -14,6 +14,7 @@ import {
   getDraft,
   prepareDraftMessage,
 } from './drafts.js'
+import { generationOptions } from './generationOptions.js'
 import { createLatestReminder } from './latestReminder.js'
 import {
   applyEvent,
@@ -44,17 +45,6 @@ const SAFETY_CHECK = { level: 'high' } as const
 const FILE_RETRY_LIMIT = 2
 /** 退避基数，第 n 次重试等待 2^n 倍；连续失败达到上限就放弃，把原始报错展示出来 */
 const FILE_RETRY_BASE_DELAY = 1000
-
-/** 阅读链接始终开启，智能搜索开关控制是否另行声明搜索工具（含边想边搜）。 */
-const serverTools = (search: boolean): CreateMessageRequest['tools'] => {
-  const tools: CreateMessageRequest['tools'] = [
-    { type: 'deepseek_read_url', name: 'deepseek_read_url' },
-  ]
-  if (search) {
-    tools.push({ type: 'deepseek_web_search', name: 'deepseek_web_search' })
-  }
-  return tools
-}
 
 /** 允许自动补标题的请求；手动重命名后取消本轮标题写入，包含主动清空标题的情况。 */
 const titleRequests = new Set<AbortController>()
@@ -255,14 +245,15 @@ export const bindChatPersistence = () => {
 
 /** 按当前开关创建回复：深度思考对应 thinking，智能搜索控制 deepseek_web_search。 */
 const createReply = (): AssistantMessage => {
-  const { thinking, search } = useSettings.getState()
+  const { model, effort, thinking, search } = useSettings.getState()
   return {
     id: createId(),
     role: 'assistant',
     createdAt: Date.now(),
-    model: MODEL,
+    model,
+    effort,
     thinking,
-    search,
+    search: model === MODEL && search,
     prefix: true,
     status: 'pending',
     blocks: [],
@@ -545,6 +536,21 @@ export const stopReply = (sessionId: string) => getStreamController(sessionId)?.
  * 提交指定会话的最新草稿；null 表示新建会话。
  * 同步接收成功才清空草稿，附件原件由会话接管；保存失败仍通过保存入口重试。
  */
+const allowNewReply = (history: Message[], text: string, attachments: number) => {
+  if (useSettings.getState().model === MODEL) {
+    return true
+  }
+  const needsFlash =
+    attachments > 0 ||
+    /(?:https?:\/\/|\bwww\.)\S+/i.test(text) ||
+    getContextRounds(history).some(
+      ([user, reply]) =>
+        user.files.length > 0 ||
+        reply.blocks.some((block) => block.type !== 'text' && block.type !== 'thinking')
+    )
+  return !needsFlash || requireFlash()
+}
+
 export const sendMessage = (targetSessionId: string | null) => {
   if (get().importingHistory || !get().ready) {
     return false
@@ -562,10 +568,17 @@ export const sendMessage = (targetSessionId: string | null) => {
   ) {
     return false
   }
+  const existing = sessionId === null ? undefined : getSession(sessionId)
+  if (!allowNewReply(existing ? getVisibleMessages(existing) : [], text, files.length)) {
+    return false
+  }
   if (sessionId === null) {
     const session: Session = {
       id: createId(),
-      title: '',
+      title:
+        useSettings.getState().model === 'deepseek-v4-pro'
+          ? Array.from(text).slice(0, 40).join('')
+          : '',
       createdAt: now,
       updatedAt: now,
       messages: [],
@@ -632,6 +645,9 @@ export const regenerateReply = (sessionId: string, messageId?: string) => {
     return
   }
   const history = path.slice(0, index - 1)
+  if (!allowNewReply(history, question.content, question.files.length)) {
+    return
+  }
   const reply = createReply()
   updateSession(sessionId, (s) => ({
     ...appendBranch(s, question.id, [reply]),
@@ -655,6 +671,9 @@ export const editMessage = (sessionId: string, messageId: string, content: strin
   const previous = path[index]
   const text = content.trim()
   if (previous?.role !== 'user' || (!text && previous.files.length === 0)) {
+    return false
+  }
+  if (!allowNewReply(path.slice(0, index), text, previous.files.length)) {
     return false
   }
   const question: UserMessage = {
@@ -710,6 +729,7 @@ export const continueReply = (sessionId: string, messageId: string) => {
     ...previous,
     // 未记录请求配置的回复，续写时使用默认模型和当前开关。
     model: previous.model ?? MODEL,
+    effort: previous.effort ?? 'high',
     thinking: previous.thinking ?? thinking,
     search: previous.search ?? search,
     status: 'pending',
@@ -999,13 +1019,10 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
-            model: initial.model ?? MODEL,
             system: SYSTEM_PROMPT,
             messages,
-            thinking: { type: initial.thinking ? 'enabled' : 'disabled' },
             safety_check: SAFETY_CHECK,
-            tools: serverTools(initial.search ?? false),
-            ...(titleRequests.has(controller) ? { title: { enabled: true } } : {}),
+            ...generationOptions(initial, titleRequests.has(controller)),
           },
           controller.signal
         )
