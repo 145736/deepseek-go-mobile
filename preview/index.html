@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="zh-CN" data-style="a">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <title>界面对比 · DeepSeek 随行</title>
+    <link rel="icon" href="../icon.svg" />
+    <link rel="stylesheet" href="./preview.css" />
+    <script defer src="./preview.js"></script>
+  </head>
+  <body>
+    <svg aria-hidden="true" class="symbols" xmlns="http://www.w3.org/2000/svg">
+      <symbol id="menu" viewBox="0 0 24 24"><path d="M4 8h16M4 15h10" /></symbol>
+      <symbol id="plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16" /></symbol>
+      <symbol id="dial" viewBox="0 0 24 24">
+        <path d="M4.3 18.3a9.4 9.4 0 1 1 15.4 0M13.6 11.2l3.1-3.1" />
+        <circle cx="12" cy="13" r="2" />
+      </symbol>
+      <symbol id="send" viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6" /></symbol>
+      <symbol id="book" viewBox="0 0 24 24">
+        <path
+          d="M4 4.5h6a3 3 0 0 1 2 1.1 3 3 0 0 1 2-1.1h6v14h-6a3 3 0 0 0-2 1 3 3 0 0 0-2-1H4zm8 1v14"
+        />
+      </symbol>
+      <symbol id="file" viewBox="0 0 24 24">
+        <path d="M6 3h8l4 4v14H6zM14 3v5h4M9 12h6m-6 4h6" />
+      </symbol>
+      <symbol id="grid" viewBox="0 0 24 24">
+        <rect x="3" y="3" width="7" height="7" rx="2" />
+        <rect x="14" y="3" width="7" height="7" rx="2" />
+        <rect x="3" y="14" width="7" height="7" rx="2" />
+        <rect x="14" y="14" width="7" height="7" rx="2" />
+      </symbol>
+      <symbol id="globe" viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="9" />
+        <ellipse cx="12" cy="12" rx="4" ry="9" />
+        <path d="M3 12h18" />
+      </symbol>
+      <symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18" /></symbol>
+      <symbol id="chev" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></symbol>
+      <symbol id="back" viewBox="0 0 24 24"><path d="m14 5-7 7 7 7" /></symbol>
+      <symbol id="check" viewBox="0 0 24 24"><path d="m4 13 5 5L20 6" /></symbol>
+      <symbol id="moon" viewBox="0 0 24 24">
+        <path d="M20 15a9 9 0 0 1-11-12 9 9 0 1 0 11 12Z" />
+      </symbol>
+    </svg>
+    <main id="frame">
+      <header>
+        <button class="icon glass" id="navigation" aria-label="打开菜单">
+          <svg><use href="#menu" /></svg>
+        </button>
+        <div class="switcher" role="group" aria-label="样稿风格">
+          <button data-pick="a" aria-pressed="true">A 通透</button
+          ><button data-pick="b" aria-pressed="false">B 暖纸</button>
+        </div>
+      </header>
+      <section id="scroll" aria-label="对话">
+        <div id="thread">
+          <div id="example">
+            <p class="user-msg" data-anchor>
+              这次讨论的结论是什么？帮我整理成一份能直接执行的会议纪要，标出还需确认的事项。
+            </p>
+            <div class="byline" data-anchor><i></i> DeepSeek <span>·</span> 会议纪要样例</div>
+            <h1 data-anchor>让下一次交接更清楚</h1>
+            <p class="lead" data-anchor>
+              先在一个项目里试用一张交接单。记录只回答三个问题：交付什么、由谁接手、怎样确认完成。
+            </p>
+            <details class="citation" data-anchor>
+              <summary>
+                <svg><use href="#file" /></svg>试点讨论记录 <span>原文节选</span
+                ><svg><use href="#chev" /></svg>
+              </summary>
+              <blockquote>
+                “先挑一个项目跑一轮。接收人能照着单子做完，再考虑推给其他组。”
+                <footer>示例材料 · 会议发言摘录</footer>
+              </blockquote>
+            </details>
+            <h2 data-anchor>已经达成的共识</h2>
+            <p data-anchor>
+              交接单跟着实际工作走。交付人填写文件位置和当前进度，接收人核对后补上下一步动作。两个角色都能说清楚下一步，才算交接完成。
+            </p>
+            <h2 data-anchor>本周行动</h2>
+            <ul class="actions">
+              <li data-anchor>
+                <strong>整理一份样单</strong
+                ><span>记录人把本次项目填成一页，保留真实文件名与交付日期。</span>
+              </li>
+              <li data-anchor>
+                <strong>做一次接手测试</strong
+                ><span>接收人照样单操作，把每个需要追问的地方圈出来。</span>
+              </li>
+              <li data-anchor>
+                <strong>根据反馈定稿</strong
+                ><span>双方一起看测试记录，优先修改造成等待或返工的字段。</span>
+              </li>
+            </ul>
+            <h2 data-anchor>仍需确认</h2>
+            <p data-anchor>
+              讨论没有定下复盘日期，也没有指定代班人。下一次同步时把这两项补齐，再发布正式模板。
+            </p>
+            <details class="citation" data-anchor>
+              <summary>
+                <svg><use href="#file" /></svg>待确认事项 <span>原文节选</span
+                ><svg><use href="#chev" /></svg>
+              </summary>
+              <blockquote>
+                “复盘时间等排期出来再定；代班安排也要问一下。”
+                <footer>示例材料 · 会议结尾摘录</footer>
+              </blockquote>
+            </details>
+          </div>
+          <div id="messages"></div>
+        </div>
+      </section>
+      <div class="dock">
+        <div id="composer">
+          <button class="icon" id="add" aria-label="工具与模型">
+            <svg><use href="#plus" /></svg>
+          </button>
+          <textarea id="draft" rows="1" placeholder="请输入消息" aria-label="请输入消息"></textarea>
+          <div class="tools">
+            <button class="skill-pill" id="skillPill" hidden></button
+            ><button id="search" class="icon mode" aria-label="智能搜索" aria-pressed="false">
+              <svg><use href="#globe" /></svg>
+            </button>
+            <button
+              id="reason"
+              class="icon mode"
+              aria-label="深度思考，长按调档"
+              aria-pressed="false"
+              aria-haspopup="dialog"
+            >
+              <svg><use href="#dial" /></svg>
+            </button>
+            <button id="sendBtn" class="icon send" aria-label="发送样稿消息" disabled>
+              <svg><use href="#send" /></svg>
+            </button>
+          </div>
+          <div id="dialPanel" hidden role="dialog" aria-label="推理程度">
+            <button id="dialClose" class="icon" aria-label="关闭调档">
+              <svg><use href="#close" /></svg></button
+            ><strong id="level"></strong><small id="dialModel"></small
+            ><input
+              id="effort"
+              aria-label="推理程度"
+              type="range"
+              min="0"
+              max="100"
+              step="1"
+              value="50"
+            />
+          </div>
+        </div>
+      </div>
+    </main>
+    <dialog id="sheet">
+      <div class="sheet-head">
+        <button id="backBtn" class="icon" aria-label="返回">
+          <svg><use href="#back" /></svg>
+        </button>
+        <h2 id="sheetTitle"></h2>
+        <button id="closeSheet" class="icon" aria-label="关闭面板">
+          <svg><use href="#close" /></svg>
+        </button>
+      </div>
+      <div id="sheetBody"></div>
+    </dialog>
+    <div id="notice" role="status" aria-live="polite"></div>
+  </body>
+</html>
