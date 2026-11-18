@@ -494,3 +494,8 @@
     margin: 16px 0 0;
   }
 }
+@media (max-width: 540px) {
+  .navigation { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-inline: 0; }
+  .navigation .navItem { min-width: 0; width: 100%; margin: 0; padding: 5px 2px; white-space: normal; text-align: center; }
+  .navigation .navItem svg { display: none; }
+}

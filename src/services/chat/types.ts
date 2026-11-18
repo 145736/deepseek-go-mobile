@@ -36,6 +36,7 @@ type MessageBranch = {
 export type UserMessage = MessageBranch & {
   id: string
   role: 'user'
+  quote?: string
   content: string
   files: FileAttachment[]
   createdAt: number
@@ -73,6 +74,8 @@ export type ReplyBlock = ThinkingPart | TextPart | ServerToolBlock
 export type ReplyStatus = 'pending' | 'streaming' | 'done' | 'stopped' | 'error'
 
 export type AssistantMessage = MessageBranch & {
+  continuedWithoutSkill?: boolean
+  skillRef?: string
   skill?: import('../skills.js').TextSkill
   id: string
   role: 'assistant'

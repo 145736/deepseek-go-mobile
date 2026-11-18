@@ -202,7 +202,8 @@ const isUsableReply = (message: Message): message is AssistantMessage =>
   getReplyText(message) !== ''
 
 /** 有文件时用内容块数组：先文件后文本，文件按 Files API 的 file_id 引用 */
-const toUserParam = ({ content, files }: UserMessage): MessageParam => {
+const toUserParam = ({ content: question, quote, files }: UserMessage): MessageParam => {
+  const content = quote ? quote.split('\n').map(line => '> ' + line).join('\n') + '\n\n' + question : question
   const blocks = toFileBlocks(files)
   return blocks.length === 0
     ? { role: 'user', content }

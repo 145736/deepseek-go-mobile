@@ -1,7 +1,9 @@
+import { ExtensionLibrary } from './ExtensionsDialog.js'
 import clsx from 'clsx'
 import { useRef, useState, type ReactNode } from 'react'
 import {
   IconDarkOutline16,
+  IconLinkOutline14,
   IconDataOutline16,
   IconDownloadOutline16,
   IconFollowsystemOutline16,
@@ -52,6 +54,7 @@ const sections: { value: SettingsSection; label: TranslationKey; icon: ReactNode
     label: 'settingDialogAsideGeneralOptionLabel',
     icon: <IconSettingsOutline16 />,
   },
+  { value: 'extensions', label: 'extensionLibrary', icon: <IconLinkOutline14 /> },
   { value: 'data', label: 'settingDialogAsideDataOptionLabel', icon: <IconDataOutline16 /> },
 ]
 
@@ -95,7 +98,7 @@ const SettingsContent = () => {
           ))}
         </div>
         <div role="tabpanel" className={styles.content}>
-          {section === 'connection' ? (
+          {section === 'extensions' ? <ExtensionLibrary /> : section === 'connection' ? (
             <>
               <div className={styles.connectionInfo}>
                 <strong>DeepSeek</strong>

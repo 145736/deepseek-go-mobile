@@ -242,8 +242,9 @@ button.access:focus-visible {
   border-radius: 20px;
 }
 [data-ds-dark-theme] .effortSheet {
-  --ink: #ffb47c;
-  --orange: #dc7d3d;
+  --paper: var(--sheet);
+  --ink: var(--accent-ink);
+  --orange: var(--accent-ink);
 }
 @keyframes revealDial {
   from {

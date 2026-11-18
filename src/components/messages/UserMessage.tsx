@@ -112,7 +112,8 @@ export const UserMessage = memo(function UserMessage({
         </div>
       ) : (
         <>
-          {message.content ? <div className={styles.bubble}>{message.content}</div> : null}
+          {message.quote && <details className="sent-quote"><summary>{t('quotedText')}</summary><p>{message.quote}</p></details>}
+          {message.content ? <div className={styles.bubble} data-quote-source>{message.content}</div> : null}
           <div className={styles.bottom}>
             <div className={clsx(styles.actions, isLast && styles.alwaysShow)}>
               {message.content ? <CopyButton text={message.content} /> : null}

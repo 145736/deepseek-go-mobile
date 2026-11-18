@@ -104,7 +104,7 @@ const readFragment: Read<Fragment> = (value) => {
   const type = string(item.type)
   switch (type) {
     case 'REQUEST':
-      return { type, content: string(item.content) }
+      return { type, content: string(item.content), quote: typeof item.quote === 'string' ? item.quote : undefined }
     case 'RESPONSE':
       return { type, content: string(item.content) }
     case 'TEMPLATE_RESPONSE':

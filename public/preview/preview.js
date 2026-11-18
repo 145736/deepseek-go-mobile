@@ -28,8 +28,12 @@ let restoreDraft = false
 let feedbackTimer
 const appearance = matchMedia('(prefers-color-scheme: dark)')
 let theme = '跟随系统'
+function syncThemeColor() {
+  document.querySelector('meta[name="theme-color"]').content = getComputedStyle(root).getPropertyValue('--bg').trim()
+}
 function updateTheme() {
   root.dataset.dark = String(theme === '深色' || (theme === '跟随系统' && appearance.matches))
+  syncThemeColor()
 }
 appearance.addEventListener('change', updateTheme)
 updateTheme()
@@ -88,6 +92,7 @@ function setStyle(value) {
   const before = anchor?.getBoundingClientRect().top
   const atTop = viewport.scrollTop === 0
   root.dataset.style = value
+  syncThemeColor()
   for (const b of document.querySelectorAll('[data-pick]'))
     b.setAttribute('aria-pressed', String(b.dataset.pick === value))
   updateComposer()

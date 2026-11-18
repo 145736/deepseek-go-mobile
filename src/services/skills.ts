@@ -37,18 +37,93 @@ function loadSkills(): TextSkill[] {
   return skills
 }
 
-export const useSkills = create<{ items: TextSkill[]; open: boolean }>(() => ({
-  items: loadSkills(),
-  open: false,
-}))
+export type Registration = {
+  id: string
+  kind: 'plugin' | 'mcp'
+  name: string
+  description: string
+  config: string
+}
+const entryPrefix = 'chat-demo:registration:'
+const switchPrefix = 'chat-demo:skill-switch:'
+const defaultKey = 'chat-demo:default-skill'
+
+function loadLibrary() {
+  const items = loadSkills()
+  const registrations: Registration[] = []
+  const choices: Record<string, string> = Object.create(null)
+  for (const item of items) {
+    choices[item.id] = item.id
+  }
+  let defaultRef = ''
+  try {
+    for (const item of items) {
+      choices[item.id] = localStorage.getItem(switchPrefix + item.id) ?? item.id
+    }
+    defaultRef = localStorage.getItem(defaultKey) ?? ''
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key?.startsWith(entryPrefix)) {
+        continue
+      }
+      try {
+        const entry = JSON.parse(localStorage.getItem(key) ?? 'null')
+        if (
+          entry?.id === key.slice(entryPrefix.length) &&
+          ['plugin', 'mcp'].includes(entry.kind) &&
+          ['name', 'description', 'config'].every((field) => typeof entry[field] === 'string')
+        ) {
+          registrations.push(entry)
+        }
+      } catch {
+        /* Keep other registrations available. */
+      }
+    }
+  } catch {
+    /* Built-in skills work while browser storage is unavailable. */
+  }
+  return { items, choices, registrations, defaultRef }
+}
+export const useSkills = create(() => ({ ...loadLibrary(), open: false }))
 export const openExtensions = () => useSkills.setState({ open: true })
-const refresh = () => useSkills.setState({ items: loadSkills() })
+const refresh = () => useSkills.setState(loadLibrary())
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {
-    if (!event.key || event.key.startsWith(prefix)) {
+    if (
+      !event.key ||
+      event.key.startsWith(prefix) ||
+      event.key.startsWith(entryPrefix) ||
+      event.key.startsWith(switchPrefix) ||
+      event.key === defaultKey
+    ) {
       refresh()
     }
   })
+}
+
+export function availableSkill(ref?: string) {
+  if (!ref) {
+    return undefined
+  }
+  const { items, choices } = useSkills.getState()
+  return items.find((item) => choices[item.id] === ref)
+}
+export function enableSkill(item: TextSkill, enabled: boolean) {
+  // A fresh reference prevents previously disabled selections from reviving.
+  localStorage.setItem(switchPrefix + item.id, enabled ? item.id + '@' + createId() : '')
+  refresh()
+}
+export function setDefaultSkill(ref: string) {
+  localStorage.setItem(defaultKey, availableSkill(ref) ? ref : '')
+  refresh()
+}
+export function saveRegistration(entry: Registration) {
+  localStorage.setItem(entryPrefix + entry.id, JSON.stringify(entry))
+  refresh()
+}
+export function deleteRegistration(id: string) {
+  localStorage.removeItem(entryPrefix + id)
+  refresh()
 }
 
 export function readTextSkill(source: string): TextSkill {

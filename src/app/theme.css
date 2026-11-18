@@ -263,13 +263,13 @@ body {
   --reading-face: 'Songti SC', STSong, 'Noto Serif CJK SC', SimSun, Georgia, serif;
 }
 body[data-ds-dark-theme] {
-  --paper: #201f1c;
-  --sheet: #292722;
-  --wash: #332f27;
-  --edge: #494437;
-  --ink: #ebe5d7;
-  --soft: #b9b1a0;
-  --accent-ink: #ddc49b;
+  --paper: #000000;
+  --sheet: #19191b;
+  --wash: #242426;
+  --edge: #3c3c40;
+  --ink: #ededf1;
+  --soft: #aaaab4;
+  --accent-ink: #91b7ff;
 }
 body, body[data-ds-dark-theme] {
   --dsw-alias-bg-base: var(--paper);

@@ -45,15 +45,16 @@
   --orange: #ee975c;
 }
 :root[data-style='b'][data-dark='true'] {
-  --bg: #201f1c;
-  --ink: #ebe5d7;
-  --soft: #b9b1a0;
-  --panel: #292722;
-  --line: #423f36;
-  --wash: #333027;
-  --accent: #ddc49b;
-  --user: #332f27;
-  --active: #40382c;
+  --bg: #000;
+  --panel: #19191b;
+  --wash: #242426;
+  --line: #3c3c40;
+  --ink: #ededf1;
+  --soft: #aaaab4;
+  --accent: #91b7ff;
+  --user: #242426;
+  --active: #23334c;
+  --orange: #91b7ff;
 }
 * {
   box-sizing: border-box;
@@ -730,4 +731,19 @@ dialog::backdrop {
   box-shadow: 0 0 0 2px var(--panel);
   transform: rotate(-45deg);
   pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+:root[data-style='b']:not([data-dark]) {
+  --bg: #000;
+  --panel: #19191b;
+  --wash: #242426;
+  --line: #3c3c40;
+  --ink: #ededf1;
+  --soft: #aaaab4;
+  --accent: #91b7ff;
+  --user: #242426;
+  --active: #23334c;
+  --orange: #91b7ff;
+}
 }

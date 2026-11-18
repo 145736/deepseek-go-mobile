@@ -427,6 +427,10 @@
   border: 5px solid transparent;
   background-clip: padding-box;
 }
+[data-ds-dark-theme] .sendButton:not(.disabled) {
+  background-color: var(--accent-ink);
+  color: #151517;
+}
 .sendButton:not(.disabled):hover {
   background: #a54618;
   background-clip: padding-box;

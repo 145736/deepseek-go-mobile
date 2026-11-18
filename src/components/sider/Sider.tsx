@@ -1,5 +1,4 @@
 import { findSessionBodies } from '../../services/chat/db.js'
-import { openExtensions } from '../../services/skills.js'
 import clsx from 'clsx'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslate } from '../../i18n/index.js'
@@ -144,16 +143,6 @@ export const Sider = ({ mobile = false }: { mobile?: boolean }) => {
         </div>
       </div>
       <div className={styles.bottom}>
-        <button
-          className={styles.settings}
-          type="button"
-          onClick={() => {
-            closeMobileSider()
-            openExtensions()
-          }}
-        >
-          {t('extensions')}
-        </button>
         <button
           type="button"
           className={styles.settings}

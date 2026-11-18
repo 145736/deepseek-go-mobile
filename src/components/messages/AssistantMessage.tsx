@@ -150,6 +150,7 @@ export const AssistantMessage = memo(function AssistantMessage({
               ? ' · ' + t(message.search ? 'searchOn' : 'searchOff')
               : ''}
           </p>
+          {message.continuedWithoutSkill && <p>{t('continuedWithoutSkill')}</p>}
           {message.skill && (
             <p>
               {t('replySkill')} · {message.skill.name}

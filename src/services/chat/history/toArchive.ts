@@ -40,7 +40,7 @@ const userFragments = (message: UserMessage, exportImage: ExportImage): Fragment
   })
   return [
     ...(files.length > 0 ? [{ type: 'FILE' as const, files }] : []),
-    { type: 'REQUEST', content: message.content },
+    { type: 'REQUEST', content: message.content, quote: message.quote },
   ]
 }
 

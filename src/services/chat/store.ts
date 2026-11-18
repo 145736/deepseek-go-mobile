@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { useSkills } from '../skills.js'
+import { availableSkill, useSkills } from '../skills.js'
 import { createId } from '../../utils/id.js'
 import { ApiError, streamMessage } from '../api/client.js'
 import type { ChatModel } from '../api/types.js'
@@ -94,7 +94,7 @@ useChatStore.subscribe((next, prev) => {
     return
   }
   try {
-    if (next.newChatSkillId) {
+    if (next.newChatSkillId !== undefined) {
       sessionStorage.setItem(draftSkillKey, next.newChatSkillId)
     } else {
       sessionStorage.removeItem(draftSkillKey)
@@ -274,7 +274,7 @@ export function setConversationSkill(sessionId: string | null, skillId?: string)
     return
   }
   if (sessionId === null) {
-    set({ newChatSkillId: skillId })
+    set({ newChatSkillId: skillId ?? '' })
   } else if (getSession(sessionId)) {
     updateSession(sessionId, (session) => ({ ...session, skillId }))
     persist(sessionId)
@@ -283,7 +283,7 @@ export function setConversationSkill(sessionId: string | null, skillId?: string)
 
 const createReply = (sessionId: string): AssistantMessage => {
   const skillId = getSession(sessionId)?.skillId
-  const skill = useSkills.getState().items.find((item) => item.id === skillId)
+  const skill = availableSkill(skillId)
   const { model, effort, thinking, search } = useSettings.getState()
   return {
     id: createId(),
@@ -293,6 +293,7 @@ const createReply = (sessionId: string): AssistantMessage => {
     effort,
     thinking,
     skill,
+    skillRef: skillId,
     search: model === MODEL && search,
     prefix: true,
     status: 'pending',
@@ -623,7 +624,7 @@ export const sendMessage = (targetSessionId: string | null) => {
       createdAt: now,
       updatedAt: now,
       messages: [],
-      skillId: get().newChatSkillId,
+      skillId: get().newChatSkillId ?? useSkills.getState().defaultRef,
       rootMessageId: null,
     }
     sessionId = session.id
@@ -644,6 +645,7 @@ export const sendMessage = (targetSessionId: string | null) => {
     id: createId(),
     role: 'user',
     content: text,
+    quote: prepared.quote,
     files: files.map(({ id, serverId, name, size, isImage, mimeType }) => ({
       id,
       serverId,
@@ -723,6 +725,7 @@ export const editMessage = (sessionId: string, messageId: string, content: strin
     id: createId(),
     role: 'user',
     content: text,
+    quote: previous.quote,
     files: previous.files,
     createdAt: Date.now(),
   }
@@ -1049,7 +1052,11 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         const latestReminder = prepared.prefix
           ? prepared.prefix.latestReminder
           : createLatestReminder(useSettings.getState())
-        reply = { ...reply, latestReminder }
+        const skill = availableSkill(initial.skillRef ?? initial.skill?.id) ? initial.skill : undefined
+        reply = { ...reply, latestReminder,
+          skill: prepared.prefix ? initial.skill : skill,
+          continuedWithoutSkill: prepared.prefix && initial.skill && !skill ? true : initial.continuedWithoutSkill,
+        }
         updateReply(sessionId, reply)
         persist(sessionId)
         const messages = toRequestMessages(
@@ -1062,8 +1069,8 @@ const streamReply = async (sessionId: string, initial: AssistantMessage, request
         const events = streamMessage(
           useSettings.getState().apiKey ?? '',
           {
-            system: initial.skill
-              ? [SYSTEM_PROMPT, initial.skill.body].join('\n\n')
+            system: skill
+              ? [SYSTEM_PROMPT, skill.body].join('\n\n')
               : SYSTEM_PROMPT,
             messages,
             safety_check: SAFETY_CHECK,

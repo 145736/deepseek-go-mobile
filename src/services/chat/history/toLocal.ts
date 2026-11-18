@@ -46,6 +46,7 @@ const toFile = (file: FileEntry): FileAttachment => ({
 const toUser = (message: ChatMessage): UserMessage => ({
   id: String(message.id),
   role: 'user',
+  quote: message.fragments.flatMap(item => item.type === 'REQUEST' && item.quote ? [item.quote] : [])[0],
   createdAt: time(message.inserted_at),
   content: message.fragments.map((item) => (item.type === 'REQUEST' ? item.content : '')).join(''),
   files: message.fragments.flatMap((item) => (item.type === 'FILE' ? item.files.map(toFile) : [])),

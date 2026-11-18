@@ -1,3 +1,5 @@
+import { SelectionQuote } from './SelectionQuote.js'
+import { setDraftQuote } from '../../services/chat/drafts.js'
 import clsx from 'clsx'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { IconGlobeLanguageOutline14, IconSendOutline16, IconStopFill16 } from '../base/icons.js'
@@ -140,7 +142,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
   // 排队、上传中或上传失败的附件都留在输入框，全部上传成功后才能发送
   const canSend = !importingHistory && !streaming && voice.status === 'idle' && draftReady
 
-  const compact = !editing && !text && !attachments.length && !streaming && voice.status === 'idle'
+  const compact = !draft.quote && !editing && !text && !attachments.length && !streaming && voice.status === 'idle'
 
   const send = () => {
     if (
@@ -186,6 +188,11 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         }
       }}
     >
+      {sessionId && <SelectionQuote key={sessionId} sessionId={sessionId} input={textareaRef} />}
+      {sessionId && draft.quote && <div className="draft-quote">
+        <span aria-hidden="true">❝</span><span>{draft.quote}</span>
+        <button type="button" aria-label={t('removeQuote')} onClick={()=>setDraftQuote(sessionId)}>×</button>
+      </div>}
       <DraftAttachments items={attachments} onRetry={retryFile} onRemove={removeFile} />
       <div className={styles.textareaWrapper}>
         <textarea

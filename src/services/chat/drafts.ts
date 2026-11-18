@@ -19,24 +19,29 @@ export type DraftAttachment = {
   previewUrl: string | null
 }
 
-type Draft = { text: string; attachments: DraftAttachment[] }
+type Draft = { text: string; quote?: string; attachments: DraftAttachment[] }
 
 export const EMPTY_DRAFT: Draft = { text: '', attachments: [] }
 
 // Persist text per conversation. Attachment blobs and upload tasks stay in memory.
 const textKey = 'chat-demo:draft-text:'
+const quoteKey = 'chat-demo:draft-quote:'
 function restoreText() {
   const drafts = new Map<string | null, Draft>()
   try {
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
-      if (!key?.startsWith(textKey)) {
+      const prefix = key?.startsWith(quoteKey) ? quoteKey : textKey
+      if (!key?.startsWith(prefix)) {
         continue
       }
-      const id = key.slice(textKey.length)
+      const id = key.slice(prefix.length)
       const text = localStorage.getItem(key)
       if (text) {
-        drafts.set(id || null, { text, attachments: [] })
+        drafts.set(id || null, {
+          ...(drafts.get(id || null) ?? EMPTY_DRAFT),
+          [prefix === quoteKey ? 'quote' : 'text']: text,
+        })
       }
     }
   } catch {
@@ -44,8 +49,8 @@ function restoreText() {
   }
   return drafts
 }
-function saveText(sessionId: string | null, text: string) {
-  const key = textKey + (sessionId ?? '')
+function saveText(sessionId: string | null, text: string, prefix = textKey) {
+  const key = prefix + (sessionId ?? '')
   try {
     if (text) {
       localStorage.setItem(key, text)
@@ -69,14 +74,20 @@ const updateDraft = (sessionId: string | null, update: (draft: Draft) => Draft) 
     if (draft.text !== state.drafts.get(sessionId)?.text) {
       saveText(sessionId, draft.text)
     }
+    if (draft.quote !== state.drafts.get(sessionId)?.quote) {
+      saveText(sessionId, draft.quote ?? '', quoteKey)
+    }
     const drafts = new Map(state.drafts)
-    if (draft.text || draft.attachments.length > 0) {
+    if (draft.text || draft.quote || draft.attachments.length > 0) {
       drafts.set(sessionId, draft)
     } else {
       drafts.delete(sessionId)
     }
     return { drafts }
   })
+
+export const setDraftQuote = (id: string, quote?: string) =>
+  updateDraft(id, (draft) => ({ ...draft, quote }))
 
 export const setDraftText = (sessionId: string | null, text: string) =>
   updateDraft(sessionId, (draft) => ({ ...draft, text }))
@@ -152,7 +163,7 @@ export const prepareDraftMessage = (draft: Draft, tasks: Record<string, UploadTa
       blob: attachment.file,
     })
   }
-  return { text, files }
+  return { text, files, quote: draft.quote }
 }
 
 const releaseAttachment = (attachment: DraftAttachment, cancel: boolean) => {
@@ -191,6 +202,7 @@ export const clearDraft = (sessionId: string | null) => {
 export const clearAllDrafts = () => {
   for (const [id, draft] of useDrafts.getState().drafts) {
     saveText(id, '')
+    saveText(id, '', quoteKey)
     draft.attachments.forEach((attachment) => releaseAttachment(attachment, true))
   }
   useDrafts.setState({ drafts: new Map() })
