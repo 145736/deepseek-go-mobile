@@ -1,4 +1,7 @@
 // Copyright (c) 2026 Xiangjian Liu. MIT license in public/licenses/official-document-skill.txt.
+// Upstream baseline: https://github.com/Liuxiangjian-ai/official-document-skill/blob/cbe5f8cd8aa79c8d977ff858994780f306cebb66/SKILL.md
+// On update, compare the new upstream SKILL.md against that baseline and merge its changes
+// into this body. The contribution-paragraph workflow, examples and final checks are local.
 export const officialDocumentSkill = {
   id: 'official-document-skill',
   name: '公文写作',
