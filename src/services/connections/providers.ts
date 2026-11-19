@@ -54,14 +54,17 @@ async function withMcp<T>(
   p: Provider,
   c: Connection,
   signal: AbortSignal | undefined,
-  run: (client: ReturnType<typeof mcpClient>) => Promise<T>
+  run: (client: ReturnType<typeof mcpClient>) => Promise<T>,
+  githubStars = false
 ) {
   const endpoint =
     p === 'regs'
       ? regsEndpoint(c.target)
       : p === 'Notion'
         ? notionEndpoint
-        : 'https://api.githubcopilot.com/mcp/'
+        : githubStars
+          ? 'https://api.githubcopilot.com/mcp/x/stargazers/readonly'
+          : 'https://api.githubcopilot.com/mcp/'
   const token = p === 'Notion' ? (await notionSession(c)).token : c.token
   if (p === 'Notion' && !token) {
     throw Error('请先在扩展库授权 Notion')
@@ -101,6 +104,11 @@ export async function verifyConnection(p: Provider, c: Connection) {
 export function detectConnection(text: string) {
   const named = /(?:^|\s)[@＠](Notion|GitHub|regs)(?=$|[\s，,：:])/i.exec(text)
   const natural = /(?:Notion|GitHub|\bregs\b|法规库)/i.exec(text)
+  const githubFavorites =
+    /github/i.test(text) &&
+    /(?:我(?:的)?[^？?。\n]{0,30}(?:收藏|标星|加星|star)|(?:收藏|标星|加星)(?:的|过的)?(?:项目|仓库|列表)|\bmy\s+(?:github\s+)?(?:stars|starred|favorites)\b)/i.test(
+      text
+    )
   const workspaceQuery =
     /(?:我(?:们)?(?:的)?\s*Notion|(?:my|our)\s+Notion|Notion\s*(?:工作区|空间|里|中|内))/i.test(
       text
@@ -111,6 +119,7 @@ export function detectConnection(text: string) {
   if (
     !named &&
     !workspaceQuery &&
+    !githubFavorites &&
     (!natural ||
       !/查|读|找|获取|搜索|看看|列出|保存|写入|创建|新建|提交|整理|总结|最近|search|read|save|create/i.test(
         text
@@ -135,7 +144,74 @@ export function detectConnection(text: string) {
     task,
     write,
     explicit: !!named,
-    workspaceQuery: provider === 'Notion' && workspaceQuery,
+    workspaceQuery:
+      (provider === 'Notion' && workspaceQuery) || (provider === 'GitHub' && githubFavorites),
+    stars:
+      provider === 'GitHub' &&
+      (githubFavorites || (!!named && /收藏|标星|加星|\bstarred\b|^stars$/i.test(task))),
+  }
+}
+
+export async function readMyStars(config: Connection, signal: AbortSignal) {
+  const names = new Set<string>()
+  let login: string | undefined
+  const pageSize = 30
+  await withMcp(
+    'GitHub',
+    config,
+    signal,
+    async (client) => {
+      for (let page = 1; ; page++) {
+        const args = { perPage: pageSize, page, sort: 'created', direction: 'desc' }
+        let response: string
+        try {
+          response = await client.call(
+            'list_starred_repositories',
+            login ? { ...args, username: login } : args
+          )
+        } catch (err) {
+          if (page !== 1 || !(err instanceof Error) || !/403/.test(err.message)) {
+            throw err
+          }
+          const identity = await withMcp('GitHub', config, signal, (c) => c.call('get_me', {}))
+          const account = parsed(identity)?.login
+          if (typeof account !== 'string' || !/^[\w-]+$/.test(account)) {
+            throw err
+          }
+          login = account
+          response = await client.call('list_starred_repositories', { ...args, username: login })
+        }
+        const rows = parsed(response)
+        if (!Array.isArray(rows)) {
+          throw Error('GitHub 未返回可识别的收藏列表')
+        }
+        const before = names.size
+        for (const row of rows) {
+          const name = row?.full_name
+          if (typeof name !== 'string' || !/^[\w-]+\/[\w.-]+$/.test(name)) {
+            throw Error('收藏结果缺少有效的仓库名称')
+          }
+          names.add(name)
+        }
+        if (rows.length < pageSize) {
+          break
+        }
+        if (before === names.size) {
+          throw Error('GitHub 重复返回同一页，无法确认完整清单')
+        }
+      }
+    },
+    true
+  )
+  const scope = login ? '按账号 ' + login + ' 查询可见的收藏' : '当前 GitHub 账号可见的收藏'
+  const links = [...names].map((name) => '- [' + name + '](https://github.com/' + name + ')')
+  return {
+    activities: [
+      { provider: 'GitHub' as const, label: '读取我的 GitHub Stars · ' + names.size + ' 个仓库' },
+    ],
+    reply: links.length
+      ? scope + '共 ' + names.size + ' 个，按收藏时间从近到远排列。\n\n' + links.join('\n')
+      : scope + '为空。',
   }
 }
 

@@ -3,6 +3,7 @@ import { useConnections } from './config.js'
 import {
   detectConnection,
   readConnection,
+  readMyStars,
   requireConnection,
   writeConnection,
   type Activity,
@@ -54,6 +55,9 @@ export async function runConnectionTask(
       submitting = true
       const activity = await writeConnection(draft, current)
       return { activities: [activity], reply: activity.label }
+    }
+    if (intent.stars) {
+      return await readMyStars(config, signal)
     }
     return await readConnection(provider, config, task, signal)
   } catch (error) {

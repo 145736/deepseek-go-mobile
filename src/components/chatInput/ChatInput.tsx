@@ -169,7 +169,7 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
     // 文本与上传完成态由提交动作读取最新快照，不使用上一次渲染的草稿。
     const connection = detectConnection(getDraft(sessionId).text)
     const directWrite = connection?.write && (connection.explicit || useConnections.getState()[connection.provider].enabled)
-    if ((!directWrite && !ensureApiKey()) || !sendMessage(sessionId)) {
+    if ((!directWrite && !connection?.stars && !ensureApiKey()) || !sendMessage(sessionId)) {
       return
     }
     stopReadAloud()

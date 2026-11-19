@@ -130,6 +130,14 @@ export function mcpClient(endpoint: string, token: string, signal?: AbortSignal)
     async call(name: string, args: Dict): Promise<string> {
       const result = await post('tools/call', { name, arguments: args })
       if (result.isError) {
+        if (
+          name === 'list_starred_repositories' &&
+          /\b403\b|resource not accessible|insufficient permission/i.test(
+            JSON.stringify(result.content)
+          )
+        ) {
+          throw Error('GitHub 拒绝读取收藏（403）。请检查令牌的账户权限 Starring 是否为只读。')
+        }
         throw Error(name + ' 未成功，请检查目标、服务权限及输入。')
       }
       const content = Array.isArray(result.content) ? result.content : []

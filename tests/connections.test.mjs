@@ -4,6 +4,7 @@ import {
   detectConnection,
   pageId,
   readConnection,
+  readMyStars,
   writeConnection,
 } from '../src/services/connections/providers.ts'
 import { repoPath, regsEndpoint } from '../src/services/connections/config.ts'
@@ -42,6 +43,57 @@ test('explicit targets, safe repository scope, and write intent', () => {
     pageId('https://www.notion.so/Meeting-0123456789abcdef0123456789abcdef'),
     '01234567-89ab-cdef-0123-456789abcdef'
   )
+})
+test('my GitHub favorites query reads the account, not the target repository, including every page', async (t) => {
+  for (const question of ['@GitHub 读取我的仓库内那些收藏的项目都有哪些？', '我 GitHub 里有哪些收藏的仓库？']) {
+    assert.equal(detectConnection(question).stars, true)
+  }
+  const pages = []
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    assert.equal(url, 'https://api.githubcopilot.com/mcp/x/stargazers/readonly')
+    const q = JSON.parse(init.body)
+    if (!q.id) return new Response(null, { status: 202 })
+    let result = { protocolVersion: '2025-03-26' }
+    if (q.method === 'tools/call') {
+      assert.equal(q.params.name, 'list_starred_repositories')
+      const {page, perPage, username, owner} = q.params.arguments
+      assert.equal(username, undefined)
+      assert.equal(owner, undefined)
+      pages.push(page)
+      const rows = Array.from({length:page === 1 ? perPage : 1}, (_,i)=>({full_name:'org/r'+((page-1)*perPage+i)}))
+      result = {content:[{type:'text',text:JSON.stringify(rows)}]}
+    }
+    return Response.json({jsonrpc:'2.0',id:q.id,result})
+  })
+  const result = await readMyStars(config,new AbortController().signal)
+  assert.deepEqual(pages,[1,2])
+  assert.match(result.reply,/共 31 个/)
+  assert.match(result.reply,/https:\/\/github.com\/org\/r30/)
+})
+test('Stars permission denial uses the verified account for a scoped read; errors are never an empty list', async t => {
+  const calls = []
+  let rejectSecondRead = false
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    const q = JSON.parse(init.body)
+    if (!q.id) return new Response(null, { status: 202 })
+    let result = { protocolVersion: '2025-03-26' }
+    if (q.method === 'tools/call') {
+      const {name, arguments: args} = q.params
+      calls.push(name)
+      if (name === 'get_me') result = {content:[{type:'text',text:'{"login":"signed-in-user"}'}]}
+      else if (!args.username || rejectSecondRead) result = {isError:true,content:[{type:'text',text:'403 Forbidden'}]}
+      else {
+        assert.equal(args.username, 'signed-in-user')
+        result = {content:[{type:'text',text:'[]'}]}
+      }
+    }
+    return Response.json({jsonrpc:'2.0',id:q.id,result})
+  })
+  const signal = new AbortController().signal
+  assert.match((await readMyStars(config,signal)).reply,/signed-in-user.*为空/)
+  assert.deepEqual(calls,['list_starred_repositories','get_me','list_starred_repositories'])
+  rejectSecondRead = true
+  await assert.rejects(readMyStars(config,signal),/403/)
 })
 test('personal Notion inventory is routed without @ and a disconnected workspace stops locally', async () => {
   const content = '我Notion里有哪些skill page？'
