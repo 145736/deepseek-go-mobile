@@ -145,7 +145,19 @@ export const MessageList = ({
     <ScrollToBottomContext.Provider value={scrollToBottom}>
       <div ref={isMobile ? undefined : scrollRef} className={styles.container}>
         <div ref={isMobile ? scrollRef : undefined} className={styles.scroll}>
-          <div ref={contentRef} className={styles.column}>
+          <div
+            ref={contentRef}
+            className={styles.column}
+            onClickCapture={(event) => {
+              if (
+                event.target instanceof Element &&
+                event.target.closest('[data-reply-activity] :is(summary, button[aria-expanded])')
+              ) {
+                // Expanding a long skill or reasoning section must keep its heading in view.
+                stickyRef.current = false
+              }
+            }}
+          >
             {messages.map((message, index) =>
               message.role === 'user' ? (
                 <UserMessage

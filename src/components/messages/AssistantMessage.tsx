@@ -55,16 +55,15 @@ export const AssistantMessage = memo(function AssistantMessage({
     .filter(Boolean)
     .join('\n\n')
   const copyText = responseText || notice?.text
-  const waiting = streaming && view.steps.length === 0 && !view.answer && !message.thinking
   const summaryEntry = `${message.id}-summary`
   return (
     <div className={styles.message}>
       {refused ? null : (
         <ReplyArea
+          key={message.id}
           message={message}
           view={view}
           streaming={streaming}
-          hasResponse={!!responseText}
         />
       )}
       {answer ? (
@@ -76,13 +75,6 @@ export const AssistantMessage = memo(function AssistantMessage({
           disableLink={false}
           sources={view.sources}
         />
-      ) : null}
-      {waiting ? (
-        <div className={styles.waiting}>
-          {[0, 1, 2].map((index) => (
-            <span key={index} className={styles.waitingDot} />
-          ))}
-        </div>
       ) : null}
       {notice?.presentation === 'response' ? (
         <Markdown
@@ -141,10 +133,7 @@ export const AssistantMessage = memo(function AssistantMessage({
       ) : null}
       {message.model && !streaming && (
         <details className="reply-skill">
-            <summary>
-              {t('replyDetails')}
-              {confirmedSkillRequest(message) && message.skill && ' · ' + message.skill.name}
-            </summary>
+          <summary>{t('activitySettings')}</summary>
           <p>
             {message.model === 'deepseek-flash' ? 'Flash' : 'Pro'}
             {message.effort && message.thinking
@@ -154,21 +143,7 @@ export const AssistantMessage = memo(function AssistantMessage({
               ? ' · ' + t(message.search ? 'searchOn' : 'searchOff')
               : ''}
           </p>
-          {message.continuedWithoutSkill && <p>{t('continuedWithoutSkill')}</p>}
-          {message.skillMatchSkipped && <p>{t('matchSkipped')}</p>}
-            {confirmedSkillRequest(message) && !message.skill && <p>{t('requestWithoutSkill')}</p>}
-            {!confirmedSkillRequest(message) && <p>{t('unconfirmedSkill')}</p>}
-            {confirmedSkillRequest(message) && message.skill && (
-              <>
-                <p>
-                  {t(message.skillMode === 'auto' ? 'matchedSkill' : message.skillMode === 'mentioned' ? 'mentionedSkill' : 'replySkill')} · {message.skill.name}
-                </p>
-                <details>
-                  <summary>{t('skillInstructions')}</summary>
-                  <p>{message.skill.body}</p>
-                </details>
-              </>
-          )}
+          {!message.skill && <p>{t(confirmedSkillRequest(message) ? 'requestWithoutSkill' : 'unconfirmedSkill')}</p>}
         </details>
       )}
       {streaming ? null : (

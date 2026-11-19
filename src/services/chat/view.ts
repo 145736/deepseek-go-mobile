@@ -27,7 +27,7 @@ export type Source = {
   index: number
 }
 
-export type ToolStatus = 'wip' | 'done' | 'failed'
+export type ToolStatus = 'wip' | 'done' | 'failed' | 'stopped'
 
 export const isDeepSearchKind = (kind: ServerToolKind) =>
   kind === 'deep_search' || kind === 'deep_image_search'
@@ -88,10 +88,14 @@ export const getSiteName = (url: string) => {
 
 const getStatus = (
   result: WebSearchToolResultBlock | WebFetchToolResultBlock | undefined,
-  streaming: boolean
+  streaming: boolean,
+  replyStatus: AssistantMessage['status']
 ): ToolStatus => {
   if (!result) {
-    return streaming ? 'wip' : 'failed'
+    if (streaming) {
+      return 'wip'
+    }
+    return replyStatus === 'stopped' ? 'stopped' : 'failed'
   }
   if (result.type === 'web_search_tool_result') {
     return result.content.some((item) => item.type === 'web_search_tool_result_error')
@@ -100,9 +104,6 @@ const getStatus = (
   }
   return result.content.type === 'web_fetch_result' ? 'done' : 'failed'
 }
-
-const mergeStatus = (statuses: ToolStatus[]): ToolStatus =>
-  statuses.includes('wip') ? 'wip' : statuses.every((s) => s === 'failed') ? 'failed' : 'done'
 
 /** 来源登记：同一 URL 只编号一次，编号按首次出现的顺序 */
 class SourceRegistry {
@@ -184,7 +185,6 @@ export const buildReplyView = (reply: AssistantMessage, streaming: boolean): Rep
   const registry = new SourceRegistry()
   const searchResults: Source[] = []
   const steps: Step[] = []
-  const mergedSearch = new Map<ServerToolKind, SearchStep>()
   let mergedThinking: ThinkingStep | null = null
   let pendingText: { index: number; text: string; citations?: TextCitation[] }[] = []
 
@@ -250,21 +250,9 @@ export const buildReplyView = (reply: AssistantMessage, streaming: boolean): Rep
       return
     }
     const result = results.get(block.id)
-    // 只有签名、没有明文 URL 的网页仍用于请求，但没有可展示的链接。
-    if (
-      block.input.action === 'read_link' &&
-      !block.input.url &&
-      !(
-        result?.type === 'web_fetch_tool_result' &&
-        result.content.type === 'web_fetch_result' &&
-        result.content.url
-      )
-    ) {
-      return
-    }
     flushPreamble()
     const { kind, input } = block
-    const status = getStatus(result, streaming)
+    const status = getStatus(result, streaming, reply.status)
     const last = steps.at(-1)
 
     if (input.action === 'search') {
@@ -277,30 +265,14 @@ export const buildReplyView = (reply: AssistantMessage, streaming: boolean): Rep
                 : []
             )
           : []
-      // 普通搜索按种类聚合到首次出现的位置；边想边搜只合并相邻、同种类的调用。
-      const target = isDeepSearchKind(kind)
-        ? last?.type === 'search' && last.kind === kind
-          ? last
-          : null
-        : mergedSearch.get(kind)
-      if (target) {
-        target.queries.push(...queries)
-        target.results.push(...found.filter((source) => !target.results.includes(source)))
-        target.status = mergeStatus([target.status, status])
-      } else {
-        const step: SearchStep = {
-          type: 'search',
-          key: block.id,
-          kind,
-          queries: [...queries],
-          results: found,
-          status,
-        }
-        steps.push(step)
-        if (!isDeepSearchKind(kind)) {
-          mergedSearch.set(kind, step)
-        }
-      }
+      steps.push({
+        type: 'search',
+        key: block.id,
+        kind,
+        queries: [...queries],
+        results: [...new Set(found)],
+        status,
+      })
       return
     }
 
@@ -308,14 +280,14 @@ export const buildReplyView = (reply: AssistantMessage, streaming: boolean): Rep
     const page: PageItem = {
       id: block.id,
       url: input.url || (fetched?.type === 'web_fetch_result' ? fetched.url : ''),
-      title: (fetched?.type === 'web_fetch_result' ? fetched.content.title : null) || input.url,
+      title:
+        (fetched?.type === 'web_fetch_result' &&
+          (fetched.content.title || getSiteName(fetched.url))) ||
+        getSiteName(input.url) ||
+        input.url,
       status,
     }
     if (input.action === 'read_link') {
-      // 阅读链接仅展示进行态；成功、失败或中止后隐藏，原始结果仍保留用于后续请求。
-      if (status !== 'wip') {
-        return
-      }
       if (last?.type === 'read_link') {
         last.links.push(page)
       } else {
@@ -347,54 +319,64 @@ export const buildReplyView = (reply: AssistantMessage, streaming: boolean): Rep
 }
 
 /** 思考总用时（秒）：各思考块用时之和，至少 1 秒；有块缺少用时时返回 null。 */
-export const getTotalThinkingSeconds = (steps: Step[], now: number) => {
+export const getTotalThinkingSeconds = (steps: Step[]) => {
   let total = 0
+  let measured = false
   for (const step of steps) {
     if (step.type === 'thinking') {
       for (const block of step.blocks) {
+        measured = true
         if (block.elapsedSeconds !== undefined) {
           total += block.elapsedSeconds * 1000
           continue
         }
-        if (block.startedAt === undefined) {
+        if (block.startedAt === undefined || block.endedAt === undefined) {
           return null
         }
-        total += (block.endedAt ?? now) - block.startedAt
+        total += block.endedAt - block.startedAt
       }
     }
   }
-  return Math.max(1, Math.round(total / 1000))
+  return measured ? Math.max(1, Math.round(total / 1000)) : null
 }
 
 /** 折叠区标题 */
-export const getAreaTitle = (
-  view: ReplyView,
-  streaming: boolean,
-  now: number,
-  hasResponse = view.answer !== null
-) => {
-  if (hasResponse) {
-    const count = getTotalThinkingSeconds(view.steps, now)
-    if (count === null) {
-      return translate('thinkingSwitch')
-    }
-    return translate(count === 1 ? 'messageThinkDuration' : 'messageThinkDurationPlural', { count })
-  }
+export const getAreaTitle = (view: ReplyView, streaming: boolean, message: AssistantMessage) => {
   if (!streaming) {
-    return translate('messageThinkStopped')
+    if (message.status === 'stopped') {
+      return translate('activityStopped')
+    }
+    if (message.status === 'error') {
+      return translate('activityError')
+    }
+    const count = getTotalThinkingSeconds(view.steps)
+    return count === null
+      ? translate('replyActivity')
+      : translate(count === 1 ? 'messageThinkDuration' : 'messageThinkDurationPlural', { count })
+  }
+  if (view.answer) {
+    return translate('activityWriting')
   }
   const last = view.steps.at(-1)
   if (last?.type === 'search' && last.status === 'wip') {
+    const query = last.queries.at(-1)
+    if (query) {
+      return translate('activitySearching', { query })
+    }
     return translate(isImageSearchKind(last.kind) ? 'imageSearching' : 'deepSearchSearching')
   }
-  if (
-    (last?.type === 'open' && last.pages.some((page) => page.status === 'wip')) ||
-    (last?.type === 'find' && last.patterns.some((item) => item.status === 'wip'))
-  ) {
-    return translate('groupTitleToolOpen')
+  if (last?.type === 'open' || last?.type === 'read_link') {
+    const page = (last.type === 'open' ? last.pages : last.links).find(
+      (page) => page.status === 'wip'
+    )
+    if (page) {
+      return page.title
+        ? translate('activityReading', { title: page.title })
+        : translate('readingLink')
+    }
   }
-  if (last?.type === 'read_link' && last.links.some((link) => link.status === 'wip')) {
-    return translate('readingLink')
+  if (last?.type === 'find' && last.patterns.some((item) => item.status === 'wip')) {
+    return translate('toolFindIntro')
   }
-  return translate('messageThinking')
+  return translate(last?.type === 'thinking' ? 'messageThinking' : 'activityProcessing')
 }

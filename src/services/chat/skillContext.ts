@@ -25,7 +25,7 @@ export function previousSkillAnswer(
   const query = compact(question.content).replace(/[？?。！!]+$/u, '')
   const subject = query.replace(/^(?:请问)?(?:你)?/u, '')
   const past =
-    /^(?:上一?[轮次条]|刚才|刚刚|方才)(?:这轮|这一轮|那轮)?(?:的)?(?:输出|回答|回复|润色)?(?:中|时)?/u
+    /^(?:上一?[轮次条]|这(?:一)?[轮次条]|刚才|刚刚|方才)(?:这轮|这一轮|那轮)?(?:的)?(?:输出|回答|回复|润色)?(?:中|时)?/u
   const rest = subject.replace(past, '').replace(/^你(?:到底|真的)?/u, '')
   const asksWhether =
     /^(?:是否|有没有|有无)/u.test(rest) || /(?:了吗|过吗|了没|了没有|吗|么)$/u.test(rest)
@@ -40,6 +40,7 @@ export function previousSkillAnswer(
   }
   const target = rest
     .slice(action[0].length)
+    .replace(/^的是/u, '')
     .replace(/(?:了吗|过吗|了没有|没有|了没|吗|了|么)$/u, '')
     .replace(/^(?:我的?|那个|这个)/u, '')
   const lastUser = history.at(-2)

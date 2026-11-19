@@ -32,6 +32,9 @@ test('explicit receipt queries read the saved reply without guessing from earlie
     { ...reply, skillMode: 'mentioned' },
   ]
   assert.match(previousSkillAnswer(history, question), /公文写作.*手动点名/)
+  for (const content of ['这次是否调用了技能？', '刚才用的是哪个技能？', '这一轮用了什么技能？']) {
+    assert.match(previousSkillAnswer(history, { ...question, content }), /上一轮.*公文写作/)
+  }
   assert.match(
     previousSkillAnswer([{ ...reply, skillResolved: false }], question, [skill]),
     /无法判断/

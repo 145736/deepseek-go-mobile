@@ -1,6 +1,6 @@
 import { useTranslate } from '../../i18n/index.js'
 import clsx from 'clsx'
-import { memo, useEffect, useState, type ReactNode } from 'react'
+import { memo, useEffect, useId, useState, type ReactNode } from 'react'
 import {
   IconBrowseOutline16,
   IconBrowseWarningOutline16,
@@ -15,6 +15,7 @@ import {
   IconThinkOutline16,
 } from '../base/icons.js'
 import type { AssistantMessage } from '../../services/chat/types.js'
+import { confirmedSkillRequest } from '../../services/chat/skillContext.js'
 import {
   getAreaTitle,
   isDeepSearchKind,
@@ -48,58 +49,93 @@ const useTicker = (active: boolean, interval: number) => {
   return tick
 }
 
-/**
- * 思考与工具步骤的时间线：
- * 开启深度思考时带可折叠的标题（正在思考 / 正在搜索 / 正在浏览网页 / 已思考（用时 N 秒））；
- * 未开启时只有工具步骤（如普通搜索的「已阅读 N 个网页」）。
- */
 export const ReplyArea = memo(function ReplyArea({
   message,
   view,
   streaming,
-  hasResponse,
 }: {
   message: AssistantMessage
   view: ReplyView
   streaming: boolean
-  hasResponse: boolean
 }) {
-  useTranslate()
-  const [open, setOpen] = useState(true)
-  const titleActive = streaming && !hasResponse
-  useTicker(titleActive, 1000)
-  if (view.steps.length === 0 && !(message.thinking && streaming)) {
+  const t = useTranslate()
+  const [open, setOpen] = useState(false)
+  const panelId = useId()
+  const confirmed = confirmedSkillRequest(message)
+  const unfinished = message.status === 'error' || message.status === 'stopped'
+  if (
+    message.localSkillReceipt ||
+    (!streaming &&
+      !unfinished &&
+      !view.steps.length &&
+      !message.skill &&
+      !message.skillMatchSkipped &&
+      !message.continuedWithoutSkill)
+  ) {
     return null
   }
-  // 未记录请求开关时，按是否有思考内容显示标题。
-  const thinking = message.thinking ?? view.steps.some((step) => step.type === 'thinking')
-  const title = thinking ? getAreaTitle(view, streaming, Date.now(), hasResponse) : null
-  const stopped = !streaming && !hasResponse
+  const stage = getAreaTitle(view, streaming, message)
+  const title = confirmed && message.skill ? message.skill.name + ' · ' + stage : stage
   return (
-    <div className={styles.area}>
-      {title ? (
-        <div className={styles.title} onClick={() => setOpen((value) => !value)}>
-          <span className={clsx(styles.titleIcon, stopped && styles.stoppedIcon)}>
-            <IconThinkOutline16 />
-          </span>
-          <span className={clsx(styles.titleText, titleActive && styles.shimmer)}>{title}</span>
-          {open ? <IconChevronDownOutline14 /> : <IconChevronRightOutline14 />}
-        </div>
-      ) : null}
-      {open || !title ? (
-        <div className={styles.steps}>
-          {view.steps.map((step, index) => (
-            <StepItem
-              key={stepKey(step, index)}
-              step={step}
-              message={message}
-              sources={view.sources}
-              streaming={streaming}
-              isLast={index === view.steps.length - 1}
-            />
-          ))}
-        </div>
-      ) : null}
+    <div className={styles.area} data-reply-activity="">
+      <button
+        type="button"
+        className={styles.title}
+        aria-controls={panelId}
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+      >
+        <span className={clsx(styles.titleIcon, unfinished && styles.stoppedIcon)}>
+          <IconThinkOutline16 />
+        </span>
+        <span className={styles.titleText} key={title}>
+          {title}
+        </span>
+        {open ? <IconChevronDownOutline14 /> : <IconChevronRightOutline14 />}
+      </button>
+      <div id={panelId} hidden={!open}>
+        {open && (
+          <>
+            {message.skill && (
+              <ContentItem isLast={!view.steps.length} active={false}>
+                <strong>{message.skill.name}</strong> ·{' '}
+                {t(
+                  message.skillMode === 'auto'
+                    ? 'matchedSkill'
+                    : confirmed && message.skillMode === 'mentioned'
+                      ? 'mentionedSkill'
+                      : confirmed
+                        ? 'replySkill'
+                        : 'activitySelected'
+                )}
+                {confirmed && (
+                  <>
+                    <p>{t('activityAttached')}</p>
+                    <details>
+                      <summary>{t('skillInstructions')}</summary>
+                      <pre>{message.skill.body}</pre>
+                    </details>
+                  </>
+                )}
+              </ContentItem>
+            )}
+            {!confirmed && !streaming && <p>{t('unconfirmedSkill')}</p>}
+            {message.continuedWithoutSkill && <p>{t('continuedWithoutSkill')}</p>}
+            {message.skillMatchSkipped && <p>{t('matchSkipped')}</p>}
+            {streaming && !view.steps.length && !message.skill && <p>{stage}</p>}
+            {view.steps.map((step, index) => (
+              <StepItem
+                key={stepKey(step, index)}
+                step={step}
+                message={message}
+                sources={view.sources}
+                streaming={streaming}
+                isLast={index === view.steps.length - 1}
+              />
+            ))}
+          </>
+        )}
+      </div>
     </div>
   )
 })
@@ -122,6 +158,7 @@ const StepItem = ({
   streaming: boolean
   isLast: boolean
 }) => {
+  const t = useTranslate()
   switch (step.type) {
     case 'thinking': {
       const lastBlock = step.blocks.at(-1)
@@ -129,12 +166,15 @@ const StepItem = ({
         streaming && lastBlock?.startedAt !== undefined && lastBlock.endedAt === undefined
       return (
         <ContentItem isLast={isLast} active={thinking}>
-          <Markdown
-            content={step.blocks.map((block) => block.thinking).join('')}
-            loading={thinking}
-            cacheKey={`${message.id}-${step.key}`}
-            disableLink
-          />
+          <details>
+            <summary>{t('activityOriginal')}</summary>
+            <Markdown
+              content={step.blocks.map((block) => block.thinking).join('')}
+              loading={thinking}
+              cacheKey={`${message.id}-${step.key}`}
+              disableLink
+            />
+          </details>
         </ContentItem>
       )
     }
@@ -151,7 +191,7 @@ const StepItem = ({
         </ContentItem>
       )
     case 'search':
-      return <SearchRow step={step} message={message} streaming={streaming} isLast={isLast} />
+      return <SearchRow step={step} message={message} isLast={isLast} />
     case 'open':
       return <OpenRow step={step} sources={sources} isLast={isLast} />
     case 'find':
@@ -181,16 +221,14 @@ const ContentItem = ({
   </div>
 )
 
-/** 搜索：普通搜索为「已阅读 N 个网页」，边想边搜为「搜索到 N 个网页」，点击打开搜索结果 */
+/** 返回的来源可从此处展开。 */
 const SearchRow = ({
   step,
   message,
-  streaming,
   isLast,
 }: {
   step: SearchStep
   message: AssistantMessage
-  streaming: boolean
   isLast: boolean
 }) => {
   const t = useTranslate()
@@ -201,7 +239,7 @@ const SearchRow = ({
   const clickable = !wip && count > 0
   const panelEntry = `${message.id}-search-${step.key}`
   const failed = step.status === 'failed'
-  const interrupted = failed && !streaming && message.status === 'stopped'
+  const interrupted = step.status === 'stopped'
 
   let body: ReactNode
   if (wip) {
@@ -225,16 +263,7 @@ const SearchRow = ({
       <span>{t(isDeepSearchKind(step.kind) ? 'toolSearchNoResult' : 'messageSearchNoResult')}</span>
     )
   } else {
-    const text = t(
-      isDeepSearchKind(step.kind)
-        ? count === 1
-          ? 'toolSearch1Result'
-          : 'toolSearchResults'
-        : count === 1
-          ? 'messageSearchResult'
-          : 'messageSearchResults',
-      { count }
-    )
+    const text = t(count === 1 ? 'toolSearch1Result' : 'toolSearchResults', { count })
     body = (
       <>
         <span className={styles.summary}>{text}</span>
@@ -243,19 +272,26 @@ const SearchRow = ({
     )
   }
   return (
-    <div
-      className={clsx(
-        styles.row,
-        !isLast && styles.withLine,
-        clickable && styles.clickable,
-        entry === panelEntry && styles.active
+    <div>
+      <button
+        type="button"
+        disabled={!clickable}
+        className={clsx(
+          styles.row,
+          !isLast && styles.withLine,
+          clickable && styles.clickable,
+          entry === panelEntry && styles.active
+        )}
+        onClick={clickable ? () => toggleSearchPanel(panelEntry, step.results) : undefined}
+      >
+        <span className={styles.rowIcon}>
+          {failed ? <IconSearchWarningOutline16 /> : <IconSearchOutline16 />}
+        </span>
+        {body}
+      </button>
+      {!wip && step.queries.length > 0 && (
+        <div className={styles.content}>{step.queries.join(' · ')}</div>
       )}
-      onClick={clickable ? () => toggleSearchPanel(panelEntry, step.results) : undefined}
-    >
-      <span className={styles.rowIcon}>
-        {failed ? <IconSearchWarningOutline16 /> : <IconSearchOutline16 />}
-      </span>
-      {body}
     </div>
   )
 }
@@ -315,29 +351,29 @@ const OpenRow = ({
       icon={allFailed ? <IconBrowseWarningOutline16 /> : <IconBrowseOutline16 />}
       isLast={isLast}
     >
-      {allFailed ? (
-        t('toolOpenFail')
-      ) : (
-        <>
-          <span className={styles.intro}>{intro}</span>
-          {step.pages.slice(0, 5).map((page) => (
-            <PageLink key={page.id} page={page} failedTip={t('toolOpenFailTooltip')} />
-          ))}
-          {count > 5 ? (
-            <span
-              className={styles.chip}
-              onClick={() =>
-                toggleSearchPanel(
-                  panelEntry,
-                  sources.filter((source) => step.pages.some((page) => page.url === source.url))
-                )
-              }
-            >
-              {t('toolOpenViewAll')}
-            </span>
-          ) : null}
-        </>
-      )}
+      <>
+        <span className={styles.intro}>{intro}</span>
+        {step.pages.slice(0, 5).map((page) => (
+          <span key={page.id}>
+            {t(pageStatusLabel[page.status])}{' '}
+            <PageLink page={page} failedTip={t('toolOpenFailTooltip')} />
+          </span>
+        ))}
+        {count > 5 ? (
+          <button
+            type="button"
+            className={styles.chip}
+            onClick={() =>
+              toggleSearchPanel(
+                panelEntry,
+                sources.filter((source) => step.pages.some((page) => page.url === source.url))
+              )
+            }
+          >
+            {t('toolOpenViewAll')}
+          </button>
+        ) : null}
+      </>
     </ToolRow>
   )
 }
@@ -364,10 +400,11 @@ const FindRow = ({ step, isLast }: { step: FindStep; isLast: boolean }) => {
               <span className={clsx(styles.chip, item.status === 'failed' && styles.chipFailed)}>
                 {item.status === 'wip' ? null : (
                   <span className={styles.chipIcon}>
-                    {item.status === 'failed' ? <IconCloseFill14 /> : <IconCheckedOutline14 />}
+                    {item.status === 'done' ? <IconCheckedOutline14 /> : <IconCloseFill14 />}
                   </span>
                 )}
                 <span className={styles.chipText}>{item.pattern}</span>
+                {item.status === 'stopped' && t('activityStopped')}
               </span>
             </Tooltip>
           ))}
@@ -377,14 +414,22 @@ const FindRow = ({ step, isLast }: { step: FindStep; isLast: boolean }) => {
   )
 }
 
-/** 阅读用户消息中的链接：视图只保留仍在读取的链接。 */
+const pageStatusLabel = {
+  wip: 'readingLink',
+  failed: 'activityReadFailed',
+  done: 'activityRead',
+  stopped: 'activityStopped',
+} as const
+
 const ReadLinkRow = ({ step, isLast }: { step: ReadLinkStep; isLast: boolean }) => {
   const t = useTranslate()
   return (
     <ToolRow icon={<IconLinkOutline16 />} isLast={isLast}>
-      <span className={clsx(styles.intro, styles.shimmer)}>{t('readingLink')}</span>
       {step.links.map((link) => (
-        <PageLink key={link.id} page={link} />
+        <span key={link.id}>
+          {t(pageStatusLabel[link.status])}{' '}
+          {link.url && <PageLink page={link} failedTip={t('activityReadFailed')} />}
+        </span>
       ))}
     </ToolRow>
   )
