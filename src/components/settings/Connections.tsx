@@ -146,7 +146,7 @@ function ConnectionForm({ provider: p }: { provider: Provider }) {
       </label>
       {p !== 'Notion' && (
         <label>
-          {p === 'GitHub' ? 'GitHub 细粒度访问令牌' : '访问令牌'}
+          {p === 'GitHub' ? 'GitHub 细粒度访问令牌' : '访问令牌（按需填写）'}
           <input
             type="password"
             autoComplete="off"
@@ -167,11 +167,6 @@ function ConnectionForm({ provider: p }: { provider: Provider }) {
           >
             创建令牌
           </a>
-        </small>
-      )}
-      {p === 'regs' && (
-        <small>
-          当前法规库入口拒绝本站的跨域请求。若服务已允许本站来源并公开 MCP 会话编号，可重新验证。
         </small>
       )}
       <Button type="submit" disabled={busy || (p === 'Notion' && !config.token)}>
