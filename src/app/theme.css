@@ -251,15 +251,15 @@ body {
   --dsw-font-xs-13: 13px/20px var(--dsw-font-family);
 }
 
-/* Warm paper surfaces and the reading face shared with the B preview. */
+/* Neutral paper surfaces with a muted clay accent. */
 body {
-  --paper: #f7f4ec;
-  --sheet: #fdfaf3;
-  --wash: #eee9dd;
-  --edge: #d9d2c5;
-  --ink: #302e29;
-  --soft: #686359;
-  --accent-ink: #765936;
+  --paper: #f8f8f6;
+  --sheet: #fdfdfb;
+  --wash: #ededeb;
+  --edge: #d7d7d3;
+  --ink: #302f2e;
+  --soft: #626260;
+  --accent-ink: #915642;
   --reading-face: 'Songti SC', STSong, 'Noto Serif CJK SC', SimSun, Georgia, serif;
 }
 body[data-ds-dark-theme] {

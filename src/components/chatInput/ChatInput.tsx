@@ -1,6 +1,6 @@
 import { SelectionQuote } from './SelectionQuote.js'
 import { useSkillMention } from './useSkillMention.js'
-import { detectConnection } from '../../services/connections/providers.js'
+import { connectorMention, detectConnection } from '../../services/connections/providers.js'
 import { useConnections } from '../../services/connections/config.js'
 import { useSkills } from '../../services/skills.js'
 import clsx from 'clsx'
@@ -279,6 +279,21 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         <ModelControls
           disabled={importingHistory}
           plusClass={styles.plus}
+          onConnector={(provider) => {
+            const current = getDraft(sessionId).text
+            const prior = connectorMention.exec(current)
+            const prefix = '@' + provider + ' '
+            const body = prior
+              ? (current.slice(0, prior.index) + current.slice(prior.index + prior[0].length)).trimStart()
+              : current
+            setText(prefix + body)
+            mention.close()
+            textareaRef.current?.focus({ preventScroll: true })
+            requestAnimationFrame(() => {
+              const end = prefix.length + body.length
+              textareaRef.current?.setSelectionRange(end, end)
+            })
+          }}
           onUpload={() => {
             const pick = () => {
               if (ensureApiKey()) {

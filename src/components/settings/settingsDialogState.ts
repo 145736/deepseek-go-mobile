@@ -8,10 +8,14 @@ export type SettingsSection = 'connection' | 'general' | 'data' | 'extensions'
 export const useSettingsDialog = create(() => ({
   open: false,
   section: 'general' as SettingsSection,
+  showMcp: false,
 }))
 
 export const openSettings = (section: SettingsSection) =>
-  useSettingsDialog.setState({ open: true, section })
+  useSettingsDialog.setState({ open: true, section, showMcp: false })
+
+export const openConnectorLibrary = () =>
+  useSettingsDialog.setState({ open: true, section: 'extensions', showMcp: true })
 
 export const closeSettings = () => useSettingsDialog.setState({ open: false })
 

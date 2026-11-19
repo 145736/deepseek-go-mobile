@@ -1,3 +1,15 @@
+export const IconSkillsOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" aria-hidden="true">
+    <path d="M2 13 5.3 3M7 3v10M10 3v10M13 3v10" />
+  </svg>
+)
+
+export const IconPlugOutline16 = () => (
+  <svg width={16} height={16} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.35" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M5.6 1.5v3.8m4.8-3.8v3.8M3.7 5.3h8.6v2a4.3 4.3 0 0 1-8.6 0zM8 11.6v2.9" />
+  </svg>
+)
+
 export const IconCheckOutline16 = () => (
   <svg width={16} height={16} viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path

@@ -101,8 +101,10 @@ export async function verifyConnection(p: Provider, c: Connection) {
     }
   })
 }
+export const connectorMention = /(?:^|\s)[@＠](Notion|GitHub|regs)(?=$|[\s，,：:])/i
+
 export function detectConnection(text: string) {
-  const named = /(?:^|\s)[@＠](Notion|GitHub|regs)(?=$|[\s，,：:])/i.exec(text)
+  const named = connectorMention.exec(text)
   const natural = /(?:Notion|GitHub|\bregs\b|法规库)/i.exec(text)
   const githubFavorites =
     /github/i.test(text) &&

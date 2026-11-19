@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useSettingsDialog } from './settingsDialogState.js'
 import { ConnectionSettings,isNotionReturn } from './Connections.js'
 import { useTranslate, isTranslationKey } from '../../i18n/index.js'
 import { useChatStore } from '../../services/chat/store.js'
@@ -68,7 +69,7 @@ type Detail =
 export function ExtensionLibrary() {
   const t = useTranslate()
   const library = useSkills()
-  const [tab, setTab] = useState<'plugin' | 'mcp' | 'skill'>(isNotionReturn?'mcp':'skill')
+  const [tab, setTab] = useState<'plugin' | 'mcp' | 'skill'>(() => isNotionReturn || useSettingsDialog.getState().showMcp ? 'mcp' : 'skill')
   const [detail, setDetail] = useState<Detail | null>(null)
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)

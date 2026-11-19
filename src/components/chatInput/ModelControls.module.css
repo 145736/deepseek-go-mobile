@@ -44,6 +44,18 @@
   border-radius: 12px;
   text-align: start;
 }
+.panel button > svg:last-child:not(:first-child) {
+  margin-inline-start: auto;
+  color: var(--dsw-alias-label-secondary);
+}
+.panel button > .value + svg { margin-inline-start: 0; }
+.panel button:disabled {
+  color: var(--dsw-alias-label-secondary);
+  cursor: default;
+  background: transparent;
+}
+.panel small { margin-inline-start: auto; }
+.panel button[data-back] svg { transform: rotate(180deg); }
 .value,
 .check {
   margin-inline-start: auto;
@@ -86,10 +98,10 @@ button.access:focus-visible {
 }
 .effortSheet {
   --thumb-size: 30px;
-  --paper: color-mix(in srgb, var(--dsw-alias-bg-base) 88%, #d5c5a8);
+  --paper: var(--sheet);
   --rail: 25px;
-  --ink: #95480f;
-  --orange: #e98035;
+  --ink: var(--accent-ink);
+  --orange: #bc7862;
   --arrival: cubic-bezier(0.16, 1, 0.3, 1);
   position: absolute;
   z-index: 2;

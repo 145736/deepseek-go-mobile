@@ -1,3 +1,5 @@
+import { providers, useConnections, type Provider } from '../../services/connections/config.js'
+import { openConnectorLibrary } from '../settings/settingsDialogState.js'
 import { openExtensions } from '../../services/skills.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
@@ -10,6 +12,8 @@ import {
   IconChevronRightOutline14,
   IconPaperclipOutline16,
   IconThinkOutline16,
+  IconPlugOutline16,
+  IconSkillsOutline16,
 } from '../base/icons.js'
 import { useAnchoredPosition, useDismiss } from '../base/anchored.js'
 import styles from './ModelControls.module.css'
@@ -23,14 +27,17 @@ export function ModelControls({
   disabled,
   plusClass,
   onUpload,
+  onConnector,
 }: {
   disabled: boolean
   plusClass: string
+  onConnector: (provider: Provider) => void
   onUpload: () => void
 }) {
   const t = useTranslate()
   const model = useSettings((state) => state.model)
-  const [page, setPage] = useState<'actions' | 'models' | null>(null)
+  const connections = useConnections()
+  const [page, setPage] = useState<'actions' | 'models' | 'connectors' | null>(null)
   const open = page !== null
   const keyboard = useRef(false)
   const id = useId()
@@ -41,7 +48,7 @@ export function ModelControls({
     side: 'top',
     align: 'start',
     offset: 6,
-    maxHeight: 240,
+    maxHeight: 260,
     minSpace: 108,
     measureKey: page,
   })
@@ -130,7 +137,14 @@ export function ModelControls({
                     openExtensions()
                   }}
                 >
-                  {t('messageSkill')}
+                  <IconSkillsOutline16 />
+                  {t('skill')}
+                  <IconChevronRightOutline14 />
+                </button>
+                <button type="button" onClick={() => setPage('connectors')}>
+                  <IconPlugOutline16 />
+                  {t('connectors')}
+                  <IconChevronRightOutline14 />
                 </button>
                 <button type="button" onClick={() => setPage('models')}>
                   <IconThinkOutline16 />
@@ -139,6 +153,22 @@ export function ModelControls({
                     {models.find(([value]) => value === model)?.[1]}
                   </span>
                   <IconChevronRightOutline14 />
+                </button>
+              </>
+            ) : page === 'connectors' ? (
+              <>
+                <button type="button" data-back aria-label={t('menuBack')} onClick={() => setPage('actions')}>
+                  <IconChevronRightOutline14 />{t('connectors')}
+                </button>
+                {providers.map((provider) => (
+                  <button key={provider} type="button" disabled={!connections[provider].enabled}
+                    onClick={() => { close(); onConnector(provider) }}>
+                    {provider}
+                    {!connections[provider].enabled && <small>{t('connectorInactive')}</small>}
+                  </button>
+                ))}
+                <button type="button" onClick={() => { close(true); openConnectorLibrary() }}>
+                  {t('manageConnectors')}<IconChevronRightOutline14 />
                 </button>
               </>
             ) : (
