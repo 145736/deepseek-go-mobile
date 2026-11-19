@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type KeyboardEvent, type RefObject } from '
 import { useTranslate } from '../../i18n/index.js'
 import { setDraftSkill, setDraftText } from '../../services/chat/drafts.js'
 import { useSkills } from '../../services/skills.js'
+import {providers,useConnections} from '../../services/connections/config.js'
 
 export function useSkillMention(
   id: string | null,
@@ -9,6 +10,7 @@ export function useSkillMention(
   input: RefObject<HTMLTextAreaElement>
 ) {
   const library = useSkills()
+  const connections = useConnections()
   const t = useTranslate()
   const listId = useId()
   const [cursor, setCursor] = useState<number | null>(null)
@@ -20,11 +22,12 @@ export function useSkillMention(
   const items =
     query === undefined
       ? []
-      : library.items.filter(
+      : [...library.items.filter(
           (s) =>
             library.choices[s.id] &&
             (s.name + ' ' + s.description).toLocaleLowerCase().includes(query.toLocaleLowerCase())
-        )
+        ), ...providers.filter(p=>connections[p].enabled && p.toLowerCase().includes(query.toLowerCase()))
+          .map(p=>({id:'connection:'+p,name:p,description:p==='regs'?'查询法规与原文':p==='Notion'?'读取页面或保存到 Notion':'读取仓库或创建 Issue'}))]
   const active = Math.max(0, Math.min(index, items.length - 1))
   const open = query !== undefined
   const update = (el: HTMLTextAreaElement) => {
@@ -38,6 +41,14 @@ export function useSkillMention(
       return
     }
     const start = cursor - query.length - 1
+    if(item.id.startsWith('connection:')){
+      const prefix = text.slice(0,start)+'@'+item.name+' '
+      setDraftText(id,prefix+text.slice(cursor))
+      close()
+      input.current?.focus({preventScroll:true})
+      requestAnimationFrame(()=>input.current?.setSelectionRange(prefix.length,prefix.length))
+      return
+    }
     const next = text.slice(0, start) + text.slice(cursor)
     setDraftText(id, next)
     setDraftSkill(id, library.choices[item.id])

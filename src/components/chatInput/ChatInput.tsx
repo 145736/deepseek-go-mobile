@@ -1,5 +1,7 @@
 import { SelectionQuote } from './SelectionQuote.js'
 import { useSkillMention } from './useSkillMention.js'
+import { detectConnection } from '../../services/connections/providers.js'
+import { useConnections } from '../../services/connections/config.js'
 import { useSkills } from '../../services/skills.js'
 import clsx from 'clsx'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
@@ -165,7 +167,9 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
       return
     }
     // 文本与上传完成态由提交动作读取最新快照，不使用上一次渲染的草稿。
-    if (!ensureApiKey() || !sendMessage(sessionId)) {
+    const connection = detectConnection(getDraft(sessionId).text)
+    const directWrite = connection?.write && (connection.explicit || useConnections.getState()[connection.provider].enabled)
+    if ((!directWrite && !ensureApiKey()) || !sendMessage(sessionId)) {
       return
     }
     stopReadAloud()

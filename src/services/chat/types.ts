@@ -76,6 +76,9 @@ export type ReplyBlock = ThinkingPart | TextPart | ServerToolBlock
 export type ReplyStatus = 'pending' | 'streaming' | 'done' | 'stopped' | 'error'
 
 export type AssistantMessage = MessageBranch & {
+  connectionActivities?: import('../connections/providers.js').Activity[]
+  connectionData?: string
+  localConnectionReply?: boolean
   localSkillReceipt?: boolean
   continuedWithoutSkill?: boolean
   skillMode?: 'auto' | 'mentioned'

@@ -1,4 +1,5 @@
 import { ExtensionsDialog } from '../components/settings/ExtensionsDialog.js'
+import { ConnectionDialogs } from '../components/settings/Connections.js'
 import { FlashPrompt } from '../components/chatInput/ModelControls.js'
 import { useEffect } from 'react'
 import { useTranslate } from '../i18n/index.js'
@@ -134,6 +135,7 @@ export const App = () => {
       <FlashPrompt />
       <ExtensionsDialog />
       <SettingsDialog />
+      <ConnectionDialogs />
       <Toast />
     </>
   )

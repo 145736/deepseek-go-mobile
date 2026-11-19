@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { ConnectionSettings,isNotionReturn } from './Connections.js'
 import { useTranslate, isTranslationKey } from '../../i18n/index.js'
 import { useChatStore } from '../../services/chat/store.js'
 import {
@@ -67,7 +68,7 @@ type Detail =
 export function ExtensionLibrary() {
   const t = useTranslate()
   const library = useSkills()
-  const [tab, setTab] = useState<'plugin' | 'mcp' | 'skill'>('skill')
+  const [tab, setTab] = useState<'plugin' | 'mcp' | 'skill'>(isNotionReturn?'mcp':'skill')
   const [detail, setDetail] = useState<Detail | null>(null)
   const [error, setError] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -182,6 +183,7 @@ export function ExtensionLibrary() {
           </>
         ) : (
           <>
+            {tab==='mcp' && <ConnectionSettings/>}
             {entries.map((e) => (
               <button
                 key={e.id}
@@ -195,7 +197,7 @@ export function ExtensionLibrary() {
                 <small>{t('registered')} ›</small>
               </button>
             ))}
-            {!entries.length && <p>{t(tab === 'mcp' ? 'emptyMcp' : 'emptyPlugin')}</p>}
+            {!entries.length && tab==='plugin' && <p>{t('emptyPlugin')}</p>}
             <Button
               variant="outlined"
               onClick={() =>

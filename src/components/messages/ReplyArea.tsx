@@ -68,6 +68,7 @@ export const ReplyArea = memo(function ReplyArea({
     (!streaming &&
       !unfinished &&
       !view.steps.length &&
+      !message.connectionActivities?.length &&
       !message.skill &&
       !message.skillMatchSkipped &&
       !message.continuedWithoutSkill)
@@ -96,6 +97,9 @@ export const ReplyArea = memo(function ReplyArea({
       <div id={panelId} hidden={!open}>
         {open && (
           <>
+            {message.connectionActivities?.map((a,i)=><ContentItem key={i} isLast={false} active={false}>
+              <strong>{a.provider}</strong> · {a.url && /^https:\/\//i.test(a.url) ? <a href={a.url} target="_blank" rel="noreferrer">{a.label}</a> : a.label}
+            </ContentItem>)}
             {message.skill && (
               <ContentItem isLast={!view.steps.length} active={false}>
                 <strong>{message.skill.name}</strong> ·{' '}
@@ -119,7 +123,7 @@ export const ReplyArea = memo(function ReplyArea({
                 )}
               </ContentItem>
             )}
-            {!confirmed && !streaming && <p>{t('unconfirmedSkill')}</p>}
+            {!confirmed && !streaming && !message.localConnectionReply && <p>{t('unconfirmedSkill')}</p>}
             {message.continuedWithoutSkill && <p>{t('continuedWithoutSkill')}</p>}
             {message.skillMatchSkipped && <p>{t('matchSkipped')}</p>}
             {streaming && !view.steps.length && !message.skill && <p>{stage}</p>}
