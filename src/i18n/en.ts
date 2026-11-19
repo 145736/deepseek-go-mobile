@@ -68,6 +68,7 @@ export const en = {
   searchOn: 'Web search is on',
   searchOff: 'Web search is off',
   connectors: 'Connectors',
+  manageSkills: 'Manage skills',
   manageConnectors: 'Manage connectors',
   connectorInactive: 'Not enabled',
   menuBack: 'Back',

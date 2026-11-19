@@ -85,8 +85,7 @@ function loadLibrary() {
   }
   return { items, choices, registrations }
 }
-export const useSkills = create(() => ({ ...loadLibrary(), open: false }))
-export const openExtensions = () => useSkills.setState({ open: true })
+export const useSkills = create(loadLibrary)
 const refresh = () => useSkills.setState(loadLibrary())
 if (typeof window !== 'undefined') {
   window.addEventListener('storage', (event) => {

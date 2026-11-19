@@ -1,6 +1,6 @@
 import { providers, useConnections, type Provider } from '../../services/connections/config.js'
-import { openConnectorLibrary } from '../settings/settingsDialogState.js'
-import { openExtensions } from '../../services/skills.js'
+import { openSettings, openConnectorLibrary } from '../settings/settingsDialogState.js'
+import { useSkills } from '../../services/skills.js'
 import { Button } from '../base/Button.js'
 import { Modal } from '../base/Modal.js'
 import { useEffect, useId, useRef, useState } from 'react'
@@ -28,16 +28,21 @@ export function ModelControls({
   plusClass,
   onUpload,
   onConnector,
+  skillRef,
+  onSkill,
 }: {
   disabled: boolean
   plusClass: string
   onConnector: (provider: Provider) => void
+  skillRef?: string
+  onSkill: (ref?: string) => void
   onUpload: () => void
 }) {
   const t = useTranslate()
   const model = useSettings((state) => state.model)
   const connections = useConnections()
-  const [page, setPage] = useState<'actions' | 'models' | 'connectors' | null>(null)
+  const library = useSkills()
+  const [page, setPage] = useState<'actions' | 'models' | 'skills' | 'connectors' | null>(null)
   const open = page !== null
   const keyboard = useRef(false)
   const id = useId()
@@ -130,13 +135,7 @@ export function ModelControls({
                   <IconPaperclipOutline16 />
                   {t('addMedia')}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    close(true)
-                    openExtensions()
-                  }}
-                >
+                <button type="button" onClick={() => setPage('skills')}>
                   <IconSkillsOutline16 />
                   {t('skill')}
                   <IconChevronRightOutline14 />
@@ -155,20 +154,44 @@ export function ModelControls({
                   <IconChevronRightOutline14 />
                 </button>
               </>
-            ) : page === 'connectors' ? (
+            ) : page === 'connectors' || page === 'skills' ? (
               <>
                 <button type="button" data-back aria-label={t('menuBack')} onClick={() => setPage('actions')}>
-                  <IconChevronRightOutline14 />{t('connectors')}
+                  <IconChevronRightOutline14 />{t(page === 'skills' ? 'skill' : 'connectors')}
                 </button>
-                {providers.map((provider) => (
+                {page === 'skills' ? (
+                  <>
+                    <button type="button" aria-pressed={!skillRef} onClick={() => { close(); onSkill() }}>
+                      {t('autoSkill')}
+                      {!skillRef && <span className={styles.check}><IconCheckOutline16 /></span>}
+                    </button>
+                    {library.items.filter(item => library.choices[item.id]).map(item => {
+                      const ref = library.choices[item.id]
+                      return (
+                        <button type="button" key={item.id} title={item.description}
+                          aria-pressed={skillRef === ref} onClick={() => { close(); onSkill(ref) }}>
+                          {item.name}
+                          {skillRef === ref && <span className={styles.check}><IconCheckOutline16 /></span>}
+                        </button>
+                      )
+                    })}
+                  </>
+                ) : providers.map((provider) => (
                   <button key={provider} type="button" disabled={!connections[provider].enabled}
                     onClick={() => { close(); onConnector(provider) }}>
                     {provider}
                     {!connections[provider].enabled && <small>{t('connectorInactive')}</small>}
                   </button>
                 ))}
-                <button type="button" onClick={() => { close(true); openConnectorLibrary() }}>
-                  {t('manageConnectors')}<IconChevronRightOutline14 />
+                <button type="button" onClick={() => {
+                  close(true)
+                  if (page === 'skills') {
+                    openSettings('extensions')
+                  } else {
+                    openConnectorLibrary()
+                  }
+                }}>
+                  {t(page === 'skills' ? 'manageSkills' : 'manageConnectors')}<IconChevronRightOutline14 />
                 </button>
               </>
             ) : (

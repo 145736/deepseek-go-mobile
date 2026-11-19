@@ -2,9 +2,7 @@ import { useRef, useState } from 'react'
 import { useSettingsDialog } from './settingsDialogState.js'
 import { ConnectionSettings,isNotionReturn } from './Connections.js'
 import { useTranslate, isTranslationKey } from '../../i18n/index.js'
-import { useChatStore } from '../../services/chat/store.js'
 import {
-  availableSkill,
   isBuiltInSkill,
   enableSkill,
   installSkill,
@@ -16,52 +14,8 @@ import {
   type TextSkill,
   type Registration,
 } from '../../services/skills.js'
-import { useDrafts, setDraftSkill } from '../../services/chat/drafts.js'
 import { createId } from '../../utils/id.js'
 import { Button } from '../base/Button.js'
-import { Modal } from '../base/Modal.js'
-
-export function ExtensionsDialog() {
-  const t = useTranslate()
-  const library = useSkills()
-  const id = useChatStore((s) => s.activeId)
-  const ref = useDrafts(s=>s.drafts.get(id)?.skillRef)
-  if (!library.open) {
-    return null
-  }
-  const close = () => useSkills.setState({ open: false })
-  const choose = (value: string) => {
-    setDraftSkill(id, value || undefined)
-    close()
-  }
-  const current = availableSkill(ref)
-  return (
-    <Modal title={t('messageSkill')} closable onClose={close} mainClassName="library-scroll">
-      <div className="extensions">
-        <button className="library-row" onClick={() => choose('')} aria-pressed={!current}>
-          {t('autoSkill')}
-          <span>{current ? '' : '✓'}</span>
-        </button>
-        {library.items
-          .filter((item) => library.choices[item.id])
-          .map((item) => (
-            <button
-              key={item.id}
-              className="library-row"
-              aria-pressed={current?.id === item.id}
-              onClick={() => choose(library.choices[item.id])}
-            >
-              <span>
-                {item.name}
-                <small>{item.description}</small>
-              </span>
-              <span>{current?.id === item.id ? '✓' : ''}</span>
-            </button>
-          ))}
-      </div>
-    </Modal>
-  )
-}
 
 type Detail =
   | { kind: 'skill'; item: TextSkill; importing?: boolean }

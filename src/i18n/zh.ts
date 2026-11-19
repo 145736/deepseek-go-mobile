@@ -66,6 +66,7 @@ export const zh = {
   searchOn: '联网搜索已开启',
   searchOff: '联网搜索已关闭',
   connectors: '连接器',
+  manageSkills: '管理技能',
   manageConnectors: '管理连接器',
   connectorInactive: '未启用',
   menuBack: '返回',

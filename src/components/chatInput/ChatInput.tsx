@@ -279,6 +279,12 @@ const Input = ({ sessionId }: { sessionId: string | null }) => {
         <ModelControls
           disabled={importingHistory}
           plusClass={styles.plus}
+          skillRef={chosen ? draft.skillRef : undefined}
+          onSkill={(ref) => {
+            setDraftSkill(sessionId, ref)
+            mention.close()
+            textareaRef.current?.focus({ preventScroll: true })
+          }}
           onConnector={(provider) => {
             const current = getDraft(sessionId).text
             const prior = connectorMention.exec(current)
