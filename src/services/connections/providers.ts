@@ -101,8 +101,16 @@ export async function verifyConnection(p: Provider, c: Connection) {
 export function detectConnection(text: string) {
   const named = /(?:^|\s)[@＠](Notion|GitHub|regs)(?=$|[\s，,：:])/i.exec(text)
   const natural = /(?:Notion|GitHub|\bregs\b|法规库)/i.exec(text)
+  const workspaceQuery =
+    /(?:我(?:们)?(?:的)?\s*Notion|(?:my|our)\s+Notion|Notion\s*(?:工作区|空间|里|中|内))/i.test(
+      text
+    ) &&
+    /哪些|有什么|有啥|有没有|多少|查|读|找|列出|看看|保存|写入|\b(?:what|list|find|search|show|save)\b/i.test(
+      text
+    )
   if (
     !named &&
+    !workspaceQuery &&
     (!natural ||
       !/查|读|找|获取|搜索|看看|列出|保存|写入|创建|新建|提交|整理|总结|最近|search|read|save|create/i.test(
         text
@@ -122,7 +130,13 @@ export function detectConnection(text: string) {
           text
         )
       : provider === 'Notion' && /保存|写入|新建|存到|存入|创建|save|create/i.test(text)
-  return { provider, task, write, explicit: !!named }
+  return {
+    provider,
+    task,
+    write,
+    explicit: !!named,
+    workspaceQuery: provider === 'Notion' && workspaceQuery,
+  }
 }
 
 export async function readConnection(
@@ -215,6 +229,31 @@ export async function readConnection(
           url: 'https://www.notion.so/' + id.replaceAll('-', ''),
         })
         return result
+      }
+      if (
+        p === 'Notion' &&
+        !quoted &&
+        /\bskills?\b|技能/i.test(task) &&
+        /哪些|有啥|有什么|多少|列出|清单|列表|\blist\b|\bwhat\b/i.test(task)
+      ) {
+        const available = await client.tools()
+        const sections: string[] = []
+        if (available.some((tool) => tool.name === 'notion-get-enabled-skills')) {
+          const enabled = await client.call('notion-get-enabled-skills', {})
+          activities.push({ provider: p, label: '读取已向外部助手启用的技能' })
+          sections.push('Notion 返回的已启用技能：\n' + enabled.slice(0, 10000))
+        }
+        for (const query of ['skill', '技能']) {
+          const matches = await client.call('notion-search', { query, query_type: 'internal' })
+          activities.push({ provider: p, label: '工作区搜索「' + query + '」' })
+          sections.push(
+            '工作区关键词「' +
+              query +
+              '」的相关页面（可能包含普通页面，不能据此断定已启用）：\n' +
+              matches.slice(0, 6500)
+          )
+        }
+        return sections.join('\n\n')
       }
       const query = (
         quoted ?? task.replace(/^(?:请|帮我|从我的|查一下|搜索|查找|找到|查询|查|找|读)\s*/g, '')

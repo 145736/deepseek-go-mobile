@@ -16,7 +16,12 @@ export async function runConnectionTask(
   signal: AbortSignal
 ): Promise<TaskResult | undefined> {
   const intent = detectConnection(question.content)
-  if (!intent || (!intent.explicit && !useConnections.getState()[intent.provider].enabled)) {
+  if (
+    !intent ||
+    (!intent.explicit &&
+      !intent.workspaceQuery &&
+      !useConnections.getState()[intent.provider].enabled)
+  ) {
     return
   }
   const { provider, task, write } = intent

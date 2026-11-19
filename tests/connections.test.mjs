@@ -8,6 +8,8 @@ import {
 } from '../src/services/connections/providers.ts'
 import { repoPath, regsEndpoint } from '../src/services/connections/config.ts'
 import { mcpClient } from '../src/services/connections/mcp.ts'
+import { runConnectionTask } from '../src/services/connections/task.ts'
+import { generationOptions } from '../src/services/chat/generationOptions.ts'
 import { confirmWrite, useWriteReview } from '../src/services/connections/confirmation.ts'
 function githubMock(t, onCall) {
   t.mock.method(globalThis, 'fetch', async (url, init) => {
@@ -41,6 +43,38 @@ test('explicit targets, safe repository scope, and write intent', () => {
     '01234567-89ab-cdef-0123-456789abcdef'
   )
 })
+test('personal Notion inventory is routed without @ and a disconnected workspace stops locally', async () => {
+  const content = '我Notion里有哪些skill page？'
+  assert.equal(detectConnection(content).workspaceQuery, true)
+  assert.equal(detectConnection('Notion 有哪些功能？'), undefined)
+  const result = await runConnectionTask({ content }, undefined, new AbortController().signal)
+  assert.match(result.reply, /连接并启用 Notion/)
+})
+
+test('Notion inventory reads enabled skills and searches internal pages with both keywords', async (t) => {
+  const calls = []
+  t.mock.method(globalThis, 'fetch', async (url, init) => {
+    assert.equal(url, 'https://mcp.notion.com/mcp')
+    const q = JSON.parse(init.body)
+    if (!q.id) return new Response(null, { status: 202 })
+    let result
+    if (q.method === 'initialize') result = { protocolVersion: '2025-03-26' }
+    else if (q.method === 'tools/list') result = { tools: [{ name: 'notion-get-enabled-skills' }] }
+    else {
+      calls.push(q.params)
+      result = { content: [{ type: 'text', text: '{"results":[]}' }] }
+    }
+    return Response.json({ jsonrpc: '2.0', id: q.id, result })
+  })
+  const { task } = detectConnection('我Notion里有哪些skill page？')
+  const result = await readConnection('Notion', config, task, new AbortController().signal)
+  assert.deepEqual(calls.map(c => [c.name,c.arguments.query]), [
+    ['notion-get-enabled-skills', undefined], ['notion-search', 'skill'], ['notion-search', '技能'],
+  ])
+  assert.equal(result.activities.length, 3)
+  assert.equal(generationOptions({model:'deepseek-flash',search:true}, false, false).tools, undefined)
+})
+
 test('writes wait for review, cancellation makes no request, exact approved body is submitted once', async (t) => {
   const calls = []
   githubMock(t, (params) => {
